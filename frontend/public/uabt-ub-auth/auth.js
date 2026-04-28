@@ -1,4 +1,4 @@
-const API_BASE = localStorage.getItem('uabt-api-url') || 'http://localhost:3000';
+const API_BASE = localStorage.getItem('uabt-api-url') || 'https://uabt-latrut-production.up.railway.app';
 
 async function api(path, options = {}) {
   const token = localStorage.getItem('uabt-auth-token');

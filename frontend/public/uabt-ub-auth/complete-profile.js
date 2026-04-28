@@ -1,4 +1,4 @@
-const API_BASE = localStorage.getItem('uabt-api-url') || 'http://localhost:3000';
+const API_BASE = localStorage.getItem('uabt-api-url') || 'https://uabt-latrut-production.up.railway.app';
 const tempToken = localStorage.getItem('uabt-google-temp-token');
 const profile = JSON.parse(localStorage.getItem('uabt-google-profile') || '{}');
 const form = document.getElementById('completeProfileForm');

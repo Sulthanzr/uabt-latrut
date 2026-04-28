@@ -1,6 +1,6 @@
 // ===== UABT UB Admin Panel Realtime =====
 const apiInput = document.querySelector('#page-pengaturan .input-block');
-const API_BASE = localStorage.getItem('uabt-api-url') || apiInput?.value || 'http://localhost:3000';
+const API_BASE = localStorage.getItem('uabt-api-url') || apiInput?.value || 'https://uabt-latrut-production.up.railway.app';
 if (apiInput) apiInput.value = API_BASE;
 const socket = window.io ? window.io(API_BASE, { transports: ['websocket', 'polling'] }) : null;
 const AUTH_TOKEN = localStorage.getItem('uabt-auth-token');

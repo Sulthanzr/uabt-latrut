@@ -1,5 +1,5 @@
 // ===== UABT UB — Player Dashboard Realtime =====
-const API_BASE = localStorage.getItem('uabt-api-url') || 'http://localhost:3000';
+const API_BASE = localStorage.getItem('uabt-api-url') || 'https://uabt-latrut-production.up.railway.app';
 const socket = window.io ? window.io(API_BASE, { transports: ['websocket', 'polling'] }) : null;
 const AUTH_TOKEN = localStorage.getItem('uabt-auth-token');
 
