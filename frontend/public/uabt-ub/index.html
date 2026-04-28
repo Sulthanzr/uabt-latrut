@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UABT UB — Dashboard Pemain Bulutangkis</title>
+  <meta name="description" content="UABT UB — Dashboard pemain bulutangkis Universitas Brawijaya: pantau sesi, antrean, riwayat match, dan profil." />
+  <link rel="icon" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#ffe066"/>
+        <stop offset="50%" stop-color="#a8e063"/>
+        <stop offset="100%" stop-color="#56ab2f"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo"><img src="logo.png" alt="UABT UB" /></div>
+        <div class="brand-text">
+          <span class="brand-name">UABT</span>
+          <span class="brand-sub">UB · BULUTANGKIS</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-page="dashboard">
+          <i class="fa-solid fa-grip"></i><span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-page="join">
+          <i class="fa-solid fa-right-to-bracket"></i><span>Bergabung</span>
+        </a>
+        <a href="#" class="nav-item" data-page="profile">
+          <i class="fa-solid fa-user"></i><span>Profil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="upgrade-card">
+          <i class="fa-solid fa-shuttlecock"></i>
+          <p>Ayo aktif main & catat poinmu setiap sesi!</p>
+        </div>
+        <a href="#" class="nav-item" data-page="settings">
+          <i class="fa-solid fa-gear"></i><span>Pengaturan</span>
+        </a>
+        <a href="../uabt-ub-auth/login.html" class="logout"><i class="fa-solid fa-right-from-bracket"></i><span>Keluar</span></a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="icon-btn" id="toggleSidebar" aria-label="Toggle sidebar">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="header-brand">
+            <img src="logo.png" alt="UABT UB" class="header-logo" />
+            <div>
+              <h1 class="welcome" id="pageTitle">UABT UB</h1>
+              <p class="welcome-sub" id="pageSub">Unit Aktivitas Bulutangkis Universitas Brawijaya</p>
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn bell" aria-label="Notifikasi">
+            <i class="fa-solid fa-bell"></i>
+            <span class="dot"></span>
+          </button>
+          <button class="avatar top-avatar-btn" id="openProfileBtn" type="button" title="Buka profil">
+            <img id="topAvatarImg" src="" alt="Foto Profil" style="display:none;">
+            <span id="topAvatarFallback">AR</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ========== DASHBOARD ========== -->
+      <section class="page active" id="page-dashboard">
+        <div class="hello-card reveal">
+          <div>
+            <p class="hello-eyebrow">Halo, Selamat Datang 👋</p>
+            <h2 class="hello-name">Alex Ramadhan</h2>
+            <p class="hello-sub">Semoga sesi mainmu hari ini lancar & menyenangkan!</p>
+          </div>
+          <button class="hello-illu profile-photo-hero" id="heroAvatarBox" type="button" title="Lihat profil">
+            <img id="heroAvatarImg" src="" alt="Foto Profil" style="display:none;">
+            <span id="heroAvatarFallback">AR</span>
+          </button>
+        </div>
+
+        <div class="stats">
+          <div class="stat-card reveal">
+            <div class="stat-icon ic-green"><i class="fa-solid fa-table-tennis-paddle-ball"></i></div>
+            <div>
+              <p class="stat-label">Main Bulan Ini</p>
+              <h2 class="stat-value" data-count="24">0</h2>
+              <p class="stat-trend neutral">Total bulan ini</p>
+            </div>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-icon ic-yellow"><i class="fa-solid fa-trophy"></i></div>
+            <div>
+              <p class="stat-label">Jumlah Menang</p>
+              <h2 class="stat-value" data-count="17">0</h2>
+              <p class="stat-trend neutral">Total menang bulan ini</p>
+            </div>
+          </div>
+          <div class="stat-card reveal">
+            <div class="stat-icon ic-leaf"><i class="fa-solid fa-calendar-check"></i></div>
+            <div>
+              <p class="stat-label">Sesi Saat Ini</p>
+              <h2 class="stat-value" id="sesiAktif">Sesi #14</h2>
+              <p class="stat-trend neutral">Diinput admin · Court A</p>
+            </div>
+          </div>
+        </div>
+
+        <section class="bento">
+          <div class="card chart-card reveal">
+            <div class="card-head">
+              <div>
+                <h3>Jumlah Main — Bulan Ini</h3>
+                <p class="muted">Ringkasan match per minggu</p>
+              </div>
+              <div class="chip-group">
+                <button class="chip active">4M</button>
+                <button class="chip">3B</button>
+                <button class="chip">Semua</button>
+              </div>
+            </div>
+            <div class="chart" id="chart"></div>
+            <div class="chart-axis" id="chartAxis"></div>
+          </div>
+
+          <div class="card session-card reveal">
+            <div class="card-head">
+              <h3>Sesi Aktif</h3>
+              <span class="badge live">LIVE</span>
+            </div>
+            <div class="session-info">
+              <div class="session-row">
+                <span class="muted">Total Main di Sesi Ini</span>
+                <strong><span data-count="3">0</span> match</strong>
+              </div>
+              <div class="session-row">
+                <span class="muted">Match Sesi (total)</span>
+                <strong><span data-count="18">0</span> match</strong>
+              </div>
+              <div class="session-row">
+                <span class="muted">Lokasi</span>
+                <strong>GOR UB — Court A</strong>
+              </div>
+            </div>
+            <div class="queue-bar">
+              <div class="queue-fill" style="width: 62%;"></div>
+            </div>
+            <p class="muted" style="margin-top:10px;">Progres sesi: 11/18 match</p>
+          </div>
+
+          <div class="card history-card reveal">
+            <div class="card-head">
+              <h3>Riwayat Match</h3>
+              <span class="muted">Klik untuk lihat detail</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Lawan</th><th>Tanggal</th><th>Skor</th><th>Hasil</th></tr></thead>
+                <tbody id="matchesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Match detail modal -->
+        <div class="modal" id="matchModal">
+          <div class="modal-card">
+            <button class="modal-close" id="modalClose"><i class="fa-solid fa-xmark"></i></button>
+            <div id="modalContent"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== PROFILE ========== -->
+      <section class="page" id="page-profile">
+        <div class="profile-grid">
+
+          <div class="profile-hero reveal">
+            <div class="profile-pic profile-photo-preview-wrap">
+              <img id="profilePhotoPreview" src="" alt="Foto Profil" style="display:none;">
+              <span id="profilePhotoFallback">AR</span>
+            </div>
+
+            <h2 class="profile-name">Alex Ramadhan</h2>
+            <p class="profile-role">Pemain UABT UB</p>
+
+            <div class="profile-tags">
+              <span class="tag grade-a">Grade A</span>
+              <span class="tag">Anggota Aktif</span>
+            </div>
+
+            <div class="profile-photo-actions">
+              <input type="file" id="profilePhotoInput" accept="image/*" hidden>
+
+              <button type="button" class="btn-primary" id="chooseProfilePhotoBtn">
+                <i class="fa-solid fa-camera"></i> Upload Foto
+              </button>
+
+              <button type="button" class="btn-danger" id="deleteProfilePhotoBtn">
+                <i class="fa-solid fa-trash"></i> Hapus Foto
+              </button>
+            </div>
+          </div>
+
+          <div class="profile-details">
+            <div class="card reveal">
+              <div class="card-head"><h3>Informasi Pribadi</h3></div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nama Lengkap</label>
+                  <input type="text" id="profileNameInput" placeholder="Nama lengkap">
+                </div>
+
+                <div class="field">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    id="profileEmailInput"
+                    readonly
+                    title="Email tidak dapat diubah"
+                    style="background: var(--surface); cursor: not-allowed;"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>No. HP</label>
+                  <input type="tel" id="profilePhoneInput" placeholder="Nomor HP">
+                </div>
+
+                <div class="field">
+                  <label>Grade</label>
+                  <input
+                    type="text"
+                    id="profileGradeInput"
+                    readonly
+                    title="Grade ditetapkan saat registrasi dan tidak dapat diubah"
+                    style="background: var(--surface); cursor: not-allowed;"
+                  >
+                </div>
+
+                <div class="field" style="grid-column: 1 / -1;">
+                  <label>Bio</label>
+                  <textarea id="profileBioInput" placeholder="Tulis bio singkat"></textarea>
+                </div>
+              </div>
+
+              <p id="profileSaveStatus" class="join-status"></p>
+
+              <button type="button" class="btn-primary" id="saveProfileBtn" style="margin-top:18px;">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== JOIN (BERGABUNG) ========== -->
+      <section class="page" id="page-join">
+        <div class="join-grid">
+          <div class="card join-code-card reveal">
+            <div class="card-head">
+              <div>
+                <h3>Masukkan Kode Sesi</h3>
+                <p class="muted">Dapatkan kode sesi dari admin. Profil pemain otomatis diambil dari database akunmu.</p>
+              </div>
+              <i class="fa-solid fa-key join-icon"></i>
+            </div>
+            <div class="form-grid">
+              <div class="field" style="grid-column: 1 / -1;"><label>Kode Sesi</label><input type="text" id="sessionCode" placeholder="Contoh: UABT-1428" maxlength="20" autocomplete="off" /></div>
+            </div>
+            <p class="muted" style="margin-top:10px;">Nama, gender, dan grade akan otomatis diambil dari akun yang sudah kamu buat.</p>
+            <button class="btn-primary" id="joinBtn" style="margin-top:14px;"><i class="fa-solid fa-right-to-bracket"></i> Bergabung Sesi</button>
+            <p class="join-status" id="joinStatus"></p>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head">
+              <h3>Jadwal Sesi Aktif</h3>
+              <span class="badge live">Diinput Admin</span>
+            </div>
+            <ul class="schedule" id="activeSessions"></ul>
+          </div>
+
+          <div class="card reveal">
+            <div class="card-head">
+              <h3>Cara Bergabung</h3>
+              <span class="muted">3 langkah mudah</span>
+            </div>
+            <div class="steps">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div>
+                  <h4>Minta Kode Sesi</h4>
+                  <p>Tanya kode sesi ke admin di lapangan.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                  <h4>Masukkan Kode</h4>
+                  <p>Ketik kode sesi dan klik <strong>Bergabung</strong>.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                  <h4>Langsung Masuk Antrean</h4>
+                  <p>Nama kamu langsung muncul realtime di dashboard admin dan antrean sesi.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== SETTINGS ========== -->
+      <section class="page" id="page-settings">
+        <div class="settings-grid">
+          <div class="settings-card reveal">
+            <h3>Notifikasi</h3>
+            <p class="muted">Atur notifikasi yang ingin kamu terima.</p>
+            <div class="toggle-row">
+              <div class="info"><h4>Giliran Main</h4><p>Notif saat giliranmu di antrean tiba.</p></div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div class="info"><h4>Sesi Baru Dibuka</h4><p>Notif saat admin membuka sesi baru.</p></div>
+              <div class="toggle on" data-toggle></div>
+            </div>
+            <div class="toggle-row">
+              <div class="info"><h4>Pengumuman UABT</h4><p>Info & berita dari pengurus.</p></div>
+              <div class="toggle" data-toggle></div>
+            </div>
+          </div>
+
+          <div class="settings-card reveal">
+            <h3>Tampilan</h3>
+            <p class="muted">Pilih tema gradasi favoritmu.</p>
+            <div class="theme-swatches">
+              <div class="swatch selected" style="background: linear-gradient(135deg,#ffe066,#a8e063,#56ab2f);" title="UB Classic"></div>
+              <div class="swatch" style="background: linear-gradient(135deg,#a8e063,#56ab2f,#1a7d3f);" title="Forest"></div>
+              <div class="swatch" style="background: linear-gradient(135deg,#fff176,#ffd54f,#ffa726);" title="Sunshine"></div>
+              <div class="swatch" style="background: linear-gradient(135deg,#ffe066,#56ab2f,#0a8f4a);" title="Court"></div>
+            </div>
+          </div>
+
+          <div class="settings-card reveal">
+            <h3>Akun & Keamanan</h3>
+            <p class="muted">Kelola username dan reset password akunmu.</p>
+
+            <div class="form-grid">
+              <div class="field">
+                <label>Username</label>
+                <input type="text" id="accountUsername" value="alex_uabt" readonly>
+              </div>
+
+              <div class="field">
+                <label>Bahasa</label>
+                <select>
+                  <option selected>Bahasa Indonesia</option>
+                  <option>English</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="button" class="btn-primary" id="openResetPasswordBtn" style="margin-top:18px;">
+              <i class="fa-solid fa-key"></i> Reset Password
+            </button>
+
+            <div id="resetPasswordBox" class="reset-password-box hidden">
+              <h4>Reset Password</h4>
+              <p class="muted">
+                Untuk akun manual, isi password lama. Untuk akun Google, kosongkan password lama lalu buat password lokal baru dengan OTP email.
+              </p>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label>Password Lama <span class="muted">(khusus akun manual)</span></label>
+                  <input type="password" id="oldPasswordInput" placeholder="Kosongkan jika akun Google belum punya password lokal">
+                </div>
+
+                <div class="field">
+                  <label>Password Baru</label>
+                  <input type="password" id="newPasswordInput" placeholder="Masukkan password baru">
+                </div>
+
+                <div class="field">
+                  <label>Konfirmasi Password Baru</label>
+                  <input type="password" id="confirmNewPasswordInput" placeholder="Ulangi password baru">
+                </div>
+
+                <div class="field">
+                  <label>Kode OTP Email</label>
+                  <div class="otp-row">
+                    <input type="text" id="passwordOtpInput" maxlength="6" placeholder="6 digit OTP">
+                    <button type="button" class="btn-primary" id="sendPasswordOtpBtn">
+                      Kirim OTP
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p id="resetPasswordStatus" class="join-status"></p>
+
+              <button type="button" class="btn-primary" id="updatePasswordBtn" style="margin-top:16px;">
+                <i class="fa-solid fa-floppy-disk"></i> Update Password
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<div id="matchNotifOverlay" class="match-notif-overlay hidden">
+  <div class="match-notif-modal">
+    <button id="matchNotifClose" class="match-notif-close" aria-label="Tutup">
+      &times;
+    </button>
+
+    <div class="match-notif-header">
+      <div class="match-notif-badge">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <div>
+        <h3>Giliran Kamu Main!</h3>
+        <p id="matchNotifSubtitle">Match baru telah dibuat</p>
+      </div>
+    </div>
+
+    <div class="match-notif-body">
+      <div class="match-notif-section">
+        <p class="label">Informasi Match</p>
+        <p id="matchNotifInfo" class="value">FREE · Court A</p>
+      </div>
+
+      <div class="match-notif-section">
+        <p class="label">Posisimu</p>
+        <p id="matchNotifTeam" class="value">Kamu di Tim A</p>
+        <p id="matchNotifPartner" class="subvalue">Partner: -</p>
+      </div>
+
+      <div class="match-notif-section">
+        <p class="label">Susunan Tim</p>
+        <p id="matchNotifTeamA" class="value">Tim A: -</p>
+        <p id="matchNotifTeamB" class="value">Tim B: -</p>
+      </div>
+    </div>
+
+    <div class="match-notif-footer">
+      <button id="matchNotifOk" class="btn-primary">
+        Oke, Siap Main
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal crop foto profil nanti taruh di sini -->
+<div id="cropperModal" class="profile-crop-modal" style="display:none;">
+  <div class="profile-crop-backdrop"></div>
+  <div class="profile-crop-dialog">
+    <div class="profile-crop-header">
+      <h3>Crop Foto Profil</h3>
+      <button type="button" id="closeCropperBtn">✕</button>
+    </div>
+
+    <div class="profile-crop-body">
+      <img id="cropperImage" src="" alt="Crop Image">
+    </div>
+
+    <div class="profile-crop-actions">
+      <button type="button" class="btn-secondary" id="cancelCropBtn">Batal</button>
+      <button type="button" class="btn-primary" id="saveCropBtn">Simpan Foto</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daftar — UABT UB</title>
+  <meta name="description" content="Buat akun baru UABT UB dan mulai catat sesi bulutangkismu." />
+  <link rel="icon" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <main class="auth-shell">
+    <div class="auth-card reveal">
+      <div class="auth-brand">
+        <img src="logo.png" alt="UABT UB" class="auth-logo" />
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-sub">Step onto the court. Complete your profile to begin.</p>
+      </div>
+
+      <form class="auth-form" id="registerForm">
+        <div class="auth-field">
+          <label for="fullname">Nama Lengkap</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-id-card"></i>
+            <input id="fullname" type="text" placeholder="Contoh: Alex Ramadhan" required />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="reg-username">Username</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-user"></i>
+            <input id="reg-username" type="text" placeholder="Pilih username unik" required />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="gender">Gender</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-venus-mars"></i>
+            <select id="gender" required>
+              <option value="">Pilih gender</option>
+              <option>Laki-laki</option>
+              <option>Perempuan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="grade">Grade</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-medal"></i>
+            <select id="grade" required>
+              <option value="">Pilih grade kemampuanmu</option>
+              <option value="A">A — Jago</option>
+              <option value="B">B — Menengah</option>
+              <option value="C">C — Pemula</option>
+            </select>
+          </div>
+          <small style="display:block; margin-top:6px; color:var(--muted, #6b7280); font-size:11px;">
+            Grade bersifat permanen setelah registrasi.
+          </small>
+        </div>
+
+        <div class="auth-field">
+          <label for="email">Alamat Email Gmail</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-envelope"></i>
+            <input id="email" type="text" placeholder="namaemail" required />
+            <span style="font-weight:800; color:#5f7a54; margin-left:6px; white-space:nowrap;">@gmail.com</span>
+          </div>
+          <small style="display:block; margin-top:6px; color:var(--muted, #6b7280); font-size:11px;">
+            Cukup isi nama email sebelum @gmail.com.
+          </small>
+        </div>
+
+        <div class="auth-field">
+          <label for="reg-password">Password</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input id="reg-password" type="password" placeholder="Buat password yang kuat" required />
+            <button type="button" class="toggle-pass" data-toggle-pass="reg-password" aria-label="Lihat password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-field" id="otpField">
+          <label for="reg-otp">Kode OTP Email</label>
+          <div style="display:flex; gap:10px; align-items:stretch;">
+            <div class="auth-input-wrap" style="flex:1;">
+              <i class="fa-solid fa-shield-halved"></i>
+              <input id="reg-otp" type="text" inputmode="numeric" maxlength="6" placeholder="Masukkan 6 digit OTP" />
+            </div>
+            <button type="button" id="sendOtp" class="btn-otp-inline">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Kirim OTP</span>
+            </button>
+          </div>
+          <small style="display:block; margin-top:6px; color:var(--muted, #6b7280); font-size:11px;">
+            Isi email Gmail dulu, lalu klik Kirim OTP. Setelah kode masuk, isi OTP dan tekan Register.
+          </small>
+        </div>
+
+        <label class="auth-check">
+          <input type="checkbox" required />
+          <span>I agree to the <a href="#" class="auth-link">Terms of Service</a> and <a href="#" class="auth-link">Privacy Policy</a>.</span>
+        </label>
+
+        <button type="submit" class="btn-primary auth-btn">
+          <i class="fa-solid fa-user-plus"></i> <span id="registerSubmitText">Register</span>
+        </button>
+      </form>
+
+      <p class="auth-foot">
+        Already have an account?
+        <a href="login.html" class="auth-link">Log in here</a>
+      </p>
+
+      <div class="auth-divider"><span>or register with</span></div>
+
+      <div class="google-button-wrap">
+        <div id="googleAuthButton" data-google-text="signup_with"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="google-config.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

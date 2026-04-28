@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masuk — UABT UB</title>
+  <meta name="description" content="Masuk ke dashboard UABT UB — Unit Aktivitas Bulutangkis Universitas Brawijaya." />
+  <link rel="icon" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <main class="auth-shell">
+    <div class="auth-card reveal">
+      <div class="auth-brand">
+        <img src="logo.png" alt="UABT UB" class="auth-logo" />
+        <h1 class="auth-title">UABT UB</h1>
+        <p class="auth-sub">Unit Aktivitas Bulutangkis Universitas Brawijaya</p>
+      </div>
+
+      <h2 class="auth-welcome">Selamat Datang 👋</h2>
+      <p class="auth-welcome-sub">Masuk untuk lanjut bermain & pantau sesi kamu.</p>
+
+      <form class="auth-form" id="loginForm">
+        <div class="auth-field">
+          <label for="username">Username</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-user"></i>
+            <input id="username" type="text" placeholder="Masukkan username" required />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input id="password" type="password" placeholder="Masukkan password" required />
+            <button type="button" class="toggle-pass" data-toggle-pass="password" aria-label="Lihat password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <a href="#" class="auth-forgot">Lupa password?</a>
+        </div>
+
+        <button type="submit" class="btn-primary auth-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> Login
+        </button>
+      </form>
+
+      <div class="auth-divider"><span>or continue with</span></div>
+
+      <div class="google-button-wrap">
+        <div id="googleAuthButton" data-google-text="continue_with"></div>
+      </div>
+
+      <p class="auth-foot">
+        New to the court?
+        <a href="register.html" class="auth-link">Register</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="google-config.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

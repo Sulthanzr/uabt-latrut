@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UABT UB — Admin Panel</title>
+<meta name="description" content="UABT UB Admin Panel — kelola sesi, antrean, match, dan leaderboard pemain bulutangkis Universitas Brawijaya." />
+<link rel="icon" href="logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><img src="logo.png" alt="UABT UB" /></div>
+      <div class="brand-text">
+        <span class="brand-name">UABT</span>
+        <span class="brand-sub">ADMIN PANEL</span>
+      </div>
+    </div>
+
+    <p class="nav-label">MENU</p>
+    <nav class="nav">
+      <a href="#" class="nav-item active" data-page="dashboard"><i class="fa-solid fa-grip"></i><span>Dashboard</span></a>
+      <a href="#" class="nav-item" data-page="scan"><i class="fa-solid fa-calendar-plus"></i><span>Tambahkan Sesi</span></a>
+      <a href="#" class="nav-item" data-page="antrean"><i class="fa-solid fa-users"></i><span>Antrean</span><span class="nav-badge" id="antreanBadge">0</span></a>
+      <a href="#" class="nav-item" data-page="generate"><i class="fa-solid fa-bolt"></i><span>Generate Match</span></a>
+      <a href="#" class="nav-item" data-page="riwayat"><i class="fa-solid fa-clock-rotate-left"></i><span>Riwayat Match</span></a>
+      <a href="#" class="nav-item" data-page="leaderboard"><i class="fa-solid fa-trophy"></i><span>Leaderboard</span></a>
+      <a href="#" class="nav-item" data-page="pengaturan"><i class="fa-solid fa-gear"></i><span>Pengaturan</span></a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar">AD</div>
+        <div class="user-meta"><strong>Admin</strong><span>Administrator</span></div>
+        <a href="../uabt-ub-auth/login.html" class="user-logout" title="Keluar"><i class="fa-solid fa-right-from-bracket"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <div class="header-left">
+        <button class="icon-btn" id="toggleSidebar" aria-label="Toggle sidebar"><i class="fa-solid fa-bars"></i></button>
+        <div>
+          <h1 class="page-title" id="pageTitle">Dashboard</h1>
+          <p class="page-sub" id="pageSub">Ringkasan sesi latihan</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="live-pill"><span class="live-dot"></span> Live</span>
+        <button class="icon-btn" id="themeBtn" title="Toggle tema"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </header>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="page active" id="page-dashboard">
+      <div class="stats">
+        <div class="stat-card reveal">
+          <div class="stat-icon ic-green"><i class="fa-solid fa-users"></i></div>
+          <h2 class="stat-value" data-count="0" id="statQueue">0</h2>
+          <p class="stat-label">Di antrean</p>
+          <p class="stat-trend">—</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon ic-yellow"><i class="fa-solid fa-qrcode"></i></div>
+          <h2 class="stat-value" data-count="0" id="statPending">0</h2>
+          <p class="stat-label">Player join sesi</p>
+          <p class="stat-trend">Masuk realtime dari kode sesi</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon ic-leaf"><i class="fa-solid fa-bolt"></i></div>
+          <h2 class="stat-value" data-count="0" id="statMatch">0</h2>
+          <p class="stat-label">Total match</p>
+          <p class="stat-trend">—</p>
+        </div>
+        <div class="stat-card reveal">
+          <div class="stat-icon ic-fire"><i class="fa-solid fa-fire"></i></div>
+          <h2 class="stat-value" id="statActive">—</h2>
+          <p class="stat-label">Pemain aktif</p>
+          <p class="stat-trend">—</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card reveal">
+          <div class="card-head">
+            <div><h3>Sesi Aktif</h3><p class="muted">QR jadwal dan kode akses pemain</p></div>
+            <button class="btn-ghost sm" id="addSesi">+ Jadwal</button>
+          </div>
+          <div class="empty soft">
+            <i class="fa-solid fa-calendar-days"></i>
+            <p>Belum ada jadwal aktif</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="card-head">
+          <div><h3>Log Aktivitas</h3><p class="muted">Real-time</p></div>
+          <button class="btn-ghost sm" id="clearLog"><i class="fa-solid fa-trash"></i> Hapus</button>
+        </div>
+        <ul class="log-list" id="logList">
+          <li class="log-empty">Belum ada aktivitas...</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===== TAMBAHKAN SESI ===== -->
+    <section class="page" id="page-scan">
+      <div class="grid-2">
+        <div class="card reveal">
+          <div class="card-head">
+            <div><h3>Tambahkan Sesi</h3><p class="muted">Buat sesi aktif dan bagikan kode ke dashboard pemain</p></div>
+          </div>
+          <div class="form-grid session-form">
+            <div class="field"><label>Nama Sesi</label><input type="text" id="sessionTitle" placeholder="Contoh: Sesi Reguler Jumat" /></div>
+            <div class="field"><label>Jam Sesi</label><input type="datetime-local" id="sessionStartAt" /></div>
+            <div class="field"><label>Tempat / GOR</label><input type="text" id="sessionLocation" placeholder="Contoh: GOR UB" value="GOR UB" /></div>
+            <div class="field"><label>Lapangan</label><input type="text" id="sessionCourt" placeholder="Contoh: Court A" value="Court A" /></div>
+            <div class="field"><label>PJ Sesi</label>
+              <select id="sessionPj" class="input-block">
+                <option value="Davy">Davy</option>
+                <option value="David">David</option>
+                <option value="Bagas">Bagas</option>
+                <option value="Sulthan">Sulthan</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary big" id="saveSessionBtn"><i class="fa-solid fa-floppy-disk"></i> Save Sesi</button>
+          <p class="muted small">Sesi yang disimpan akan menjadi sesi aktif. Kode sesi muncul di bawah dan bisa dimasukkan pemain.</p>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-head">
+            <div><h3>Detail Sesi Aktif</h3><p class="muted">Klik sesi untuk melihat kode paling atas</p></div>
+          </div>
+          <div id="activeSessionDetail" class="alur-item green">
+            <strong>Belum ada sesi aktif</strong>
+            <p>Buat sesi baru terlebih dahulu.</p>
+          </div>
+          <h4 class="mini-title">Sesi Aktif</h4>
+          <div id="sessionList" class="table-wrap"></div>
+          <h4 class="mini-title">Player Join Sesi</h4>
+          <div id="joinedPlayersBox" class="table-wrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ANTREAN ===== -->
+    <section class="page" id="page-antrean">
+      <div class="card reveal">
+        <div class="card-head">
+          <div><h3>Daftar Antrean</h3><p class="muted">Pemain siap dimatchkan</p></div>
+          <button class="btn-ghost sm" id="resetAntrean"><i class="fa-solid fa-rotate"></i> Reset</button>
+        </div>
+        <div class="empty">
+          <i class="fa-solid fa-users"></i>
+          <p>Belum ada pemain di antrean</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GENERATE MATCH ===== -->
+    <section class="page" id="page-generate">
+      <div class="grid-2">
+        <div class="card reveal">
+          <div class="card-head">
+            <div><h3>Generate Match</h3><p class="muted">Smart pairing by count, level, dan gender</p></div>
+          </div>
+          <div class="empty">
+            <i class="fa-solid fa-bullseye"></i>
+            <p>Belum ada pemain</p>
+          </div>
+          <div class="info-strip">Prioritas: <span class="hl">level seimbang dan pemula digandeng minimal menengah.</span></div>
+          <button class="btn-primary big" id="generateBtn" disabled><i class="fa-solid fa-bolt"></i> GENERATE MATCH</button>
+          <p class="muted center small">Kurang 4 pemain</p>
+        </div>
+
+        <div class="grid-stack">
+          <div class="card reveal court-card">
+            <div class="card-head">
+              <div><p class="muted upper">MATCH</p><h3>#—</h3></div>
+              <div class="status-block"><p class="muted upper">STATUS</p><strong>Menunggu</strong></div>
+            </div>
+            <div class="empty">
+              <i class="fa-solid fa-shuttlecock"></i>
+              <p>Generate match untuk mulai</p>
+            </div>
+          </div>
+          <div class="card reveal">
+            <div class="card-head"><h3>Log Match</h3></div>
+            <p class="muted">Belum ada aktivitas...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== RIWAYAT MATCH ===== -->
+<section class="page" id="page-riwayat">
+  <div class="card reveal">
+    <div class="card-head">
+      <div><h3>Riwayat Match</h3><p class="muted">Belum ada match</p></div>
+      <div class="actions">
+        <button class="btn-primary sm" id="exportSpreadsheetBtn">
+          <i class="fa-solid fa-file-export"></i> Export Spreadsheet
+        </button>
+        <button class="btn-danger sm"><i class="fa-solid fa-trash"></i> Reset</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Match</th>
+            <th>Tim A</th>
+            <th>VS</th>
+            <th>Tim B</th>
+            <th>Hasil</th>
+            <th>Edit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" class="td-empty">Belum ada riwayat</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+    <!-- ===== LEADERBOARD ===== -->
+    <section class="page" id="page-leaderboard">
+      <div class="grid-2">
+        <div class="card reveal">
+          <div class="card-head">
+            <div><h3>Leaderboard Sesi</h3><p class="muted">Ranking by jumlah main</p></div>
+          </div>
+          <div class="empty">
+            <i class="fa-solid fa-trophy"></i>
+            <p>Belum ada data</p>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="card-head"><h3>Statistik</h3></div>
+          <div class="stat-bar"><span>Total match</span><strong>0</strong></div>
+          <div class="stat-bar"><span>Total pemain</span><strong>0</strong></div>
+          <div class="stat-bar"><span>Rata-rata main</span><strong>0</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PENGATURAN ===== -->
+    <section class="page" id="page-pengaturan">
+      <div class="grid-2">
+        <div class="card reveal">
+          <div class="card-head"><h3>Konfigurasi</h3></div>
+          <label class="upper muted">BACKEND API URL</label>
+          <input type="text" class="input-block" value="http://localhost:3000" />
+          <div class="row-actions">
+            <button class="btn-primary sm"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+            <button class="btn-ghost sm"><i class="fa-solid fa-plug"></i> Test Koneksi</button>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="card-head"><h3>Preferensi</h3></div>
+          <div class="toggle-row">
+            <div><h4>Real-time WebSocket</h4><p class="muted">Notifikasi otomatis ke pemain</p></div>
+            <div class="toggle on" data-toggle></div>
+          </div>
+          <div class="toggle-row">
+            <div><h4>Auto-refresh</h4><p class="muted">Sync manual + realtime</p></div>
+            <div class="toggle on" data-toggle></div>
+          </div>
+          <h4 class="warn"><i class="fa-solid fa-triangle-exclamation"></i> Zona Bahaya</h4>
+          <button class="btn-danger block"><i class="fa-solid fa-trash"></i> Reset Seluruh Sesi</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

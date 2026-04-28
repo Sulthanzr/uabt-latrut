@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lengkapi Profil — UABT UB</title>
+  <meta name="description" content="Lengkapi profil Google untuk masuk ke UABT UB." />
+  <link rel="icon" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <main class="auth-shell">
+    <div class="auth-card reveal">
+      <div class="auth-brand">
+        <img src="logo.png" alt="UABT UB" class="auth-logo" />
+        <h1 class="auth-title">Lengkapi Profil</h1>
+        <p class="auth-sub">Data Google kamu sudah valid. Lengkapi data pemain untuk lanjut.</p>
+      </div>
+
+      <form class="auth-form" id="completeProfileForm">
+        <div class="auth-field">
+          <label for="profile-nama">Nama Lengkap</label>
+          <div class="auth-input-wrap"><i class="fa-solid fa-id-card"></i><input id="profile-nama" type="text" placeholder="Nama lengkap" required /></div>
+        </div>
+        <div class="auth-field">
+          <label for="profile-username">Username</label>
+          <div class="auth-input-wrap"><i class="fa-solid fa-user"></i><input id="profile-username" type="text" placeholder="username" required /></div>
+        </div>
+        <div class="auth-field">
+          <label for="profile-gender">Gender</label>
+          <div class="auth-input-wrap"><i class="fa-solid fa-venus-mars"></i><select id="profile-gender" required><option value="">Pilih gender</option><option value="P">Pria</option><option value="W">Wanita</option></select></div>
+        </div>
+        <div class="auth-field">
+          <label for="profile-grade">Grade</label>
+          <div class="auth-input-wrap"><i class="fa-solid fa-ranking-star"></i><select id="profile-grade" required><option value="">Pilih grade</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
+        </div>
+        <div class="auth-field">
+          <label for="profile-phone">Nomor HP <span style="font-weight:500;opacity:.7">(opsional)</span></label>
+          <div class="auth-input-wrap"><i class="fa-solid fa-phone"></i><input id="profile-phone" type="text" placeholder="08xxxxxxxxxx" /></div>
+        </div>
+        <button type="submit" class="btn-primary auth-btn"><i class="fa-solid fa-floppy-disk"></i> Simpan & Masuk</button>
+      </form>
+
+      <p class="auth-foot">Bukan akun ini? <a href="login.html" class="auth-link" id="backToLogin">Kembali ke login</a></p>
+    </div>
+  </main>
+
+  <script src="complete-profile.js"></script>
+</body>
+</html>
