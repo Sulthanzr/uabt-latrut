@@ -1,9 +1,5 @@
 import express from 'express';
-import { z } from 'zod';
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
-import { fileURLToPath } from 'url';
+import { z } from 'zod'
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { query } from '../config/db.js';
 import { requireAuth, requireAdmin } from '../utils/auth.js';
@@ -20,14 +16,13 @@ import {
   findPlayers,
   joinPlayerToSession,
   publicPlayer,
-  removePlayerProfilePhoto,
-  updatePlayerProfilePhoto,
   updatePlayerStatus,
 } from '../services/repository.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const backendRoot = path.resolve(__dirname, '../..');
+import {
+  uploadProfilePhotoToSupabase,
+  deleteProfilePhotoFromSupabase,
+} from '../utils/supabaseStorage.js';
 
 export const playerRouter = express.Router();
 
@@ -68,25 +63,43 @@ function validateNewPassword(password) {
   return null;
 }
 
-playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
-  const payload = joinSchema.parse(req.body);
-  const session = await findActiveSessionByCode(payload.sessionCode);
-  if (!session) return res.status(404).json({ message: 'Kode sesi tidak ditemukan atau sesi belum aktif.' });
+playerRouter.post(
+  '/me/profile-photo',
+  requireAuth,
+  uploadProfilePhoto.single('photo'),
+  asyncHandler(async (req, res) => {
+    const playerId = req.user?._id || req.user?.id;
 
-  const existing = await findPlayerById(req.user._id);
-  if (!existing) return res.status(404).json({ message: 'Akun pemain tidak ditemukan. Silakan login ulang.' });
+    if (!playerId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-  if (existing.status === 'playing' && String(existing.session) !== String(session._id)) {
-    return res.status(409).json({ message: 'Pemain masih tercatat bermain di sesi lain.' });
-  }
+    if (!req.file) {
+      return res.status(400).json({ message: 'File foto belum dipilih.' });
+    }
 
-  const player = await joinPlayerToSession(existing._id, session._id);
-  const snapshot = await getSessionSnapshot(session._id);
-  const safePlayer = publicPlayer(player);
-  emitToSession(session._id, 'snapshot:update', snapshot);
-  emitToSession(session._id, 'player:joined', safePlayer);
-  res.status(200).json({ data: safePlayer, session });
-}));
+    const photoUrl = await uploadProfilePhotoToSupabase({
+      playerId,
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype,
+    });
+
+    await query(
+      `UPDATE players
+       SET profile_photo_url = $2,
+           updated_at = now()
+       WHERE id = $1`,
+      [playerId, photoUrl]
+    );
+
+    const player = await findPlayerById(playerId);
+
+    res.json({
+      message: 'Foto profil berhasil diupload.',
+      data: publicPlayer(player),
+    });
+  })
+);
 
 playerRouter.get('/me/stats', requireAuth, asyncHandler(async (req, res) => {
   const playerId = req.user._id;
@@ -212,24 +225,32 @@ playerRouter.post(
   })
 );
 
-playerRouter.delete(
-  '/me/profile-photo',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const playerId = req.user?._id || req.user?.id;
+playerRouter.delete('/me/profile-photo', requireAuth, asyncHandler(async (req, res) => {
+  const playerId = req.user?._id || req.user?.id;
 
-    if (!playerId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
+  if (!playerId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
-    const player = await removePlayerProfilePhoto(playerId);
+  await deleteProfilePhotoFromSupabase(playerId).catch((err) => {
+    console.warn('[supabase] gagal hapus file, lanjut kosongkan DB:', err.message);
+  });
 
-    res.json({
-      message: 'Foto profil berhasil dihapus.',
-      data: publicPlayer(player),
-    });
-  })
-);
+  await query(
+    `UPDATE players
+     SET profile_photo_url = NULL,
+         updated_at = now()
+     WHERE id = $1`,
+    [playerId]
+  );
+
+  const player = await findPlayerById(playerId);
+
+  res.json({
+    message: 'Foto profil berhasil dihapus.',
+    data: publicPlayer(player),
+  });
+}));
 
 playerRouter.patch('/me/profile', requireAuth, asyncHandler(async (req, res) => {
   const playerId = req.user?._id || req.user?.id;
