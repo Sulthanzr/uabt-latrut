@@ -141,6 +141,19 @@ function teamText(team) { return (team || []).map((p) => `${p.nama} (${p.grade})
 function timeText(date) { return date ? new Date(date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'; }
 function dateTimeText(date) { return date ? new Date(date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; }
 
+function parseCourtList(courtText = 'Court 1') {
+  return String(courtText || 'Court 1')
+    .split(',')
+    .map((court) => court.trim())
+    .filter(Boolean);
+}
+
+function buildCourtList(count) {
+  const total = Math.max(1, Math.min(Number(count) || 1, 10));
+
+  return Array.from({ length: total }, (_, index) => `Court ${index + 1}`).join(', ');
+}
+
 function winnerText(winner) {
   if (winner === 'team1') return 'Tim A menang';
   if (winner === 'team2') return 'Tim B menang';
@@ -177,21 +190,6 @@ function renderDashboardCards() {
       : '<strong>Belum ada sesi</strong><p>Buat sesi baru di menu Tambahkan Sesi.</p>';
   }
 }
-
-  const sessionCard = document.querySelector('#page-dashboard .grid-2 .card:nth-child(2)');
-  if (sessionCard) {
-    sessionCard.querySelector('.empty')?.remove();
-    let box = sessionCard.querySelector('#sessionMini');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'sessionMini';
-      box.className = 'alur-item green';
-      sessionCard.appendChild(box);
-    }
-    const s = snapshot.session;
-    box.innerHTML = s ? `<strong>${s.title}</strong><p><b>Kode:</b> ${s.code} · ${s.location} · ${s.court} · PJ ${s.pj || '-'}</p>` : '<strong>Belum ada sesi</strong><p>Buat sesi baru di menu Tambahkan Sesi.</p>';
-  }
-
 
 function renderSessionManagement() {
   const detail = document.getElementById('activeSessionDetail');
@@ -255,34 +253,97 @@ function renderGenerate() {
   const generateBtn = document.getElementById('generateBtn');
   const generateCard = document.querySelector('#page-generate .card');
   const note = generateCard?.querySelector('.muted.center.small');
-  if (generateBtn) generateBtn.disabled = snapshot.queue.length < 4;
-  if (note) note.textContent = snapshot.queue.length < 4 ? `Kurang ${4 - snapshot.queue.length} pemain` : `${snapshot.queue.length} pemain siap dimatchkan`;
+
+  const queueCount = snapshot?.queue?.length || 0;
+  const activeMatches = (snapshot?.matches || []).filter((m) => m.status === 'playing');
+  const courts = parseCourtList(snapshot?.session?.court || 'Court 1');
+
+  const busyCourts = new Set(
+    activeMatches
+      .map((m) => String(m.court || '').trim())
+      .filter(Boolean)
+  );
+
+  const availableCourts = courts.filter((court) => !busyCourts.has(court));
+  const possibleMatches = Math.min(Math.floor(queueCount / 4), availableCourts.length);
+
+  if (generateBtn) {
+    generateBtn.disabled = !snapshot?.session || possibleMatches < 1;
+  }
+
+  if (note) {
+    if (!snapshot?.session) {
+      note.textContent = 'Belum ada sesi aktif';
+    } else if (queueCount < 4) {
+      note.textContent = `Kurang ${4 - queueCount} pemain`;
+    } else if (!availableCourts.length) {
+      note.textContent = 'Semua lapangan sedang dipakai';
+    } else {
+      note.textContent = `${queueCount} pemain siap · ${availableCourts.length} lapangan kosong → bisa generate ${possibleMatches} match`;
+    }
+  }
 
   const courtCard = document.querySelector('.court-card');
-  const active = snapshot.matches.find((m) => m.status === 'playing');
+
   if (courtCard) {
-    courtCard.querySelector('.empty')?.remove();
-    const h3 = courtCard.querySelector('h3');
-    const status = courtCard.querySelector('.status-block strong');
-    if (h3) h3.textContent = active ? `#${active.matchNo}` : '#—';
-    if (status) status.textContent = active ? 'Bermain' : 'Menunggu';
-    let box = courtCard.querySelector('#activeMatchBox');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'activeMatchBox';
-      box.className = 'alur-item blue';
-      courtCard.appendChild(box);
-    }
-    box.innerHTML = active ? `
-      <strong>${active.gameType} · ${active.team1Point} vs ${active.team2Point} poin</strong>
-      <p>Tim 1: ${teamText(active.team1)}</p><p>Tim 2: ${teamText(active.team2)}</p>
-      <button class="btn-primary sm" data-complete="${active._id}">Selesaikan & kembali antrean</button>` : '<strong>Belum ada match aktif</strong><p>Generate match untuk mulai.</p>';
+    const activeSorted = activeMatches
+      .slice()
+      .sort((a, b) => Number(a.matchNo || 0) - Number(b.matchNo || 0));
+
+    courtCard.innerHTML = `
+      <div class="card-head">
+        <div>
+          <p class="muted upper">MATCH AKTIF</p>
+          <h3>${activeSorted.length ? `${activeSorted.length} Match` : '#—'}</h3>
+        </div>
+        <div class="status-block">
+          <p class="muted upper">LAPANGAN</p>
+          <strong>${availableCourts.length}/${courts.length} kosong</strong>
+        </div>
+      </div>
+
+      ${
+        activeSorted.length
+          ? activeSorted.map((m) => `
+            <div class="alur-item blue">
+              <strong>${m.court || 'Court'} · Match #${m.matchNo} · ${m.gameType}</strong>
+              <p>Tim A: ${teamText(m.team1)}</p>
+              <p>Tim B: ${teamText(m.team2)}</p>
+              <p>Poin: ${m.team1Point} - ${m.team2Point}</p>
+              <button class="btn-primary sm" data-complete="${m._id}">
+                Selesaikan & kembali antrean
+              </button>
+            </div>
+          `).join('')
+          : courts.map((court) => `
+            <div class="alur-item green">
+              <strong>${court}</strong>
+              <p>Lapangan kosong. Generate match untuk mulai.</p>
+            </div>
+          `).join('')
+      }
+    `;
   }
 
   const logCard = document.querySelector('#page-generate .grid-stack .card:nth-child(2)');
   if (logCard) {
-    const latest = snapshot.matches.slice(0, 5);
-    logCard.innerHTML = `<div class="card-head"><h3>Log Match</h3></div>${latest.length ? `<ul class="log-list">${latest.map((m) => `<li><span>#${m.matchNo} ${m.gameType}: ${teamText(m.team1)} vs ${teamText(m.team2)}</span><span class="log-time">${m.status}</span></li>`).join('')}</ul>` : '<p class="muted">Belum ada aktivitas...</p>'}`;
+    const latest = (snapshot.matches || []).slice(0, 5);
+
+    logCard.innerHTML = `
+      <div class="card-head"><h3>Log Match</h3></div>
+      ${
+        latest.length
+          ? `<ul class="log-list">
+              ${latest.map((m) => `
+                <li>
+                  <span>#${m.matchNo} ${m.court || ''} ${m.gameType}: ${teamText(m.team1)} vs ${teamText(m.team2)}</span>
+                  <span class="log-time">${m.status}</span>
+                </li>
+              `).join('')}
+            </ul>`
+          : '<p class="muted">Belum ada aktivitas...</p>'
+      }
+    `;
   }
 }
 
@@ -602,7 +663,8 @@ async function createSessionFromForm() {
   const title = document.getElementById('sessionTitle')?.value.trim();
   const startAt = document.getElementById('sessionStartAt')?.value;
   const location = document.getElementById('sessionLocation')?.value.trim() || 'GOR UB';
-  const court = document.getElementById('sessionCourt')?.value.trim() || 'Court A';
+  const courtCount = document.getElementById('sessionCourtCount')?.value || 1;
+  const court = buildCourtList(courtCount);
   const pj = getLoggedInAdminName();
 
   if (!title) return toast('Nama sesi wajib diisi', 'error');
@@ -721,11 +783,33 @@ document.getElementById('resetAntrean')?.addEventListener('click', async () => {
 
 document.getElementById('generateBtn')?.addEventListener('click', async () => {
   try {
-    const match = await api('/api/matches/generate', { method: 'POST', body: JSON.stringify({ sessionId: snapshot.session?._id, tolerance: 0, fallbackTolerance: 2 }) });
-    toast(`Match #${match.matchNo} dibuat`);
-    addLog(`Match #${match.matchNo}: ${teamText(match.team1)} vs ${teamText(match.team2)}`, 'fa-bolt');
+    const result = await api('/api/matches/generate-batch', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionId: snapshot.session?._id,
+        tolerance: 0,
+        fallbackTolerance: 2,
+      }),
+    });
+
+    const matches = result.matches || [];
+
+    if (!matches.length) {
+      toast('Tidak ada match yang dibuat', 'info');
+      return;
+    }
+
+    toast(`${matches.length} match berhasil dibuat`);
+
+    addLog(
+      `Generate ${matches.length} match: ${matches.map((m) => `#${m.matchNo} ${m.court || ''}`).join(', ')}`,
+      'fa-bolt'
+    );
+
     await loadSnapshot();
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (err) {
+    toast(err.message, 'error');
+  }
 });
 
 async function completeMatch(matchId) {
