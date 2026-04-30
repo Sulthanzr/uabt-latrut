@@ -101,13 +101,13 @@ playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
   emitToSession(session._id, 'player:joined', publicPlayer(player));
   emitToSession(session._id, 'snapshot:update', snapshot);
 
+  const safePlayer = publicPlayer(player);
+
   res.json({
     message: 'Berhasil bergabung ke sesi.',
-    data: {
-      player: publicPlayer(player),
-      session,
-      snapshot,
-    },
+    data: safePlayer,
+    session,
+    snapshot,
   });
 }));
 
