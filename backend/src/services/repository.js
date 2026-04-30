@@ -484,10 +484,30 @@ export async function generateMatchTransactional({ sessionId, tolerance = 0, fal
       return { error: { status: 422, message: `Kurang pemain. Butuh 4, tersedia ${waitingPlayers.length}.` } };
     }
 
-    let result = findBestMatch(waitingPlayers, { tolerance });
+    const recentMatchesResult = await client.query(
+      `SELECT *
+      FROM matches
+      WHERE session_id = $1
+      ORDER BY match_no DESC
+      LIMIT 30`,
+      [session._id]
+    );
+
+    const recentMatches = recentMatchesResult.rows.map(toMatch);
+
+    let result = findBestMatch(waitingPlayers, {
+      tolerance,
+      recentMatches,
+    });
+
     let toleranceUsed = tolerance;
+
     if (!result && fallbackTolerance > tolerance) {
-      result = findBestMatch(waitingPlayers, { tolerance: fallbackTolerance });
+      result = findBestMatch(waitingPlayers, {
+        tolerance: fallbackTolerance,
+        recentMatches,
+      });
+
       toleranceUsed = fallbackTolerance;
     }
     if (!result) {
@@ -613,6 +633,17 @@ export async function generateMatchesBatchTransactional({
       };
     }
 
+    const recentMatchesResult = await client.query(
+      `SELECT *
+      FROM matches
+      WHERE session_id = $1
+      ORDER BY match_no DESC
+      LIMIT 30`,
+      [session._id]
+    );
+
+    const recentMatches = recentMatchesResult.rows.map(toMatch);
+
     const maxByPlayers = Math.floor(waitingPlayers.length / 4);
     const maxByCourts = availableCourts.length;
     const requestedMax = Number.isInteger(maxMatches) && maxMatches > 0
@@ -630,11 +661,19 @@ export async function generateMatchesBatchTransactional({
     const createdMatches = [];
 
     for (let index = 0; index < targetMatchCount; index += 1) {
-      let result = findBestMatch(waitingPlayers, { tolerance });
+      let result = findBestMatch(waitingPlayers, {
+        tolerance,
+        recentMatches,
+      });
+
       let toleranceUsed = tolerance;
 
       if (!result && fallbackTolerance > tolerance) {
-        result = findBestMatch(waitingPlayers, { tolerance: fallbackTolerance });
+        result = findBestMatch(waitingPlayers, {
+          tolerance: fallbackTolerance,
+          recentMatches,
+        });
+
         toleranceUsed = fallbackTolerance;
       }
 
@@ -696,6 +735,7 @@ export async function generateMatchesBatchTransactional({
       }
 
       createdMatches.push(match);
+      recentMatches.unshift(match);
       waitingPlayers = removePlayersByIds(waitingPlayers, playerIds);
       nextNo += 1;
     }

@@ -58,12 +58,77 @@ function scoreTeam(team) {
   return team.reduce((sum, p) => sum + gradePoint(p.grade), 0);
 }
 
-function candidateRank(candidate, queue) {
-  const ids = new Set([...candidate.team1, ...candidate.team2].map((p) => String(p._id ?? p.id)));
-  const maxQueueIndex = Math.max(...queue.map((p, i) => (ids.has(String(p._id ?? p.id)) ? i : -1)));
-  const totalWaitAge = [...candidate.team1, ...candidate.team2].reduce((sum, p) => sum + new Date(p.waktu_hadir).getTime(), 0);
-  const totalPlayCount = [...candidate.team1, ...candidate.team2].reduce((sum, p) => sum + (p.jumlah_main ?? 0), 0);
-  return { maxQueueIndex, totalWaitAge, totalPlayCount };
+function playerId(playerOrId) {
+  if (!playerOrId) return '';
+  if (typeof playerOrId === 'string') return playerOrId;
+  return String(playerOrId._id || playerOrId.id || '');
+}
+
+function pairKey(a, b) {
+  return [playerId(a), playerId(b)].sort().join(':');
+}
+
+function teamPairPenalty(team, pairWeights) {
+  if (!team || team.length < 2) return 0;
+
+  const key = pairKey(team[0], team[1]);
+  return pairWeights.get(key) || 0;
+}
+
+function matchTeamIds(team = []) {
+  return team.map(playerId).filter(Boolean);
+}
+
+function buildRecentPairWeights(recentMatches = [], limit = 20) {
+  const pairWeights = new Map();
+
+  recentMatches.slice(0, limit).forEach((match, index) => {
+    const weight = Math.max(1, limit - index);
+
+    const team1 = matchTeamIds(match.team1 || match.team1_ids || []);
+    const team2 = matchTeamIds(match.team2 || match.team2_ids || []);
+
+    if (team1.length >= 2) {
+      const key = pairKey(team1[0], team1[1]);
+      pairWeights.set(key, (pairWeights.get(key) || 0) + weight);
+    }
+
+    if (team2.length >= 2) {
+      const key = pairKey(team2[0], team2[1]);
+      pairWeights.set(key, (pairWeights.get(key) || 0) + weight);
+    }
+  });
+
+  return pairWeights;
+}
+
+function candidateRank(candidate, queue, pairWeights) {
+  const ids = new Set([...candidate.team1, ...candidate.team2].map((p) => playerId(p)));
+
+  const maxQueueIndex = Math.max(
+    ...queue.map((p, i) => (ids.has(playerId(p)) ? i : -1))
+  );
+
+  const totalWaitAge = [...candidate.team1, ...candidate.team2].reduce(
+    (sum, p) => sum + new Date(p.waktu_hadir).getTime(),
+    0
+  );
+
+  const totalPlayCount = [...candidate.team1, ...candidate.team2].reduce(
+    (sum, p) => sum + (p.jumlah_main ?? 0),
+    0
+  );
+
+  const repeatPairPenalty =
+    teamPairPenalty(candidate.team1, pairWeights) +
+    teamPairPenalty(candidate.team2, pairWeights);
+
+  return {
+    maxQueueIndex,
+    totalWaitAge,
+    totalPlayCount,
+    repeatPairPenalty,
+  };
 }
 
 /**
@@ -78,6 +143,11 @@ export function findBestMatch(players, options = {}) {
   const maxSearchPlayers = options.maxSearchPlayers ?? 16;
   const queue = sortQueue(players).slice(0, maxSearchPlayers);
   if (queue.length < 4) return null;
+
+  const pairWeights = buildRecentPairWeights(
+    options.recentMatches || [],
+    options.recentHistoryLimit ?? 20
+  );
 
   const validCandidates = [];
 
@@ -97,7 +167,8 @@ export function findBestMatch(players, options = {}) {
         const diff = Math.abs(team1Point - team2Point);
         if (diff > tolerance) continue;
 
-        const rank = candidateRank(partition, queue);
+        const rank = candidateRank(partition, queue, pairWeights);
+
         validCandidates.push({
           ...partition,
           gameType,
@@ -105,6 +176,7 @@ export function findBestMatch(players, options = {}) {
           team2Point,
           diff,
           anchorIndex,
+          randomTie: Math.random(),
           ...rank,
         });
       }
@@ -117,9 +189,16 @@ export function findBestMatch(players, options = {}) {
   validCandidates.sort((a, b) => {
     if (a.diff !== b.diff) return a.diff - b.diff;
     if (a.anchorIndex !== b.anchorIndex) return a.anchorIndex - b.anchorIndex;
+
+    if (a.repeatPairPenalty !== b.repeatPairPenalty) {
+      return a.repeatPairPenalty - b.repeatPairPenalty;
+    }
+
     if (a.maxQueueIndex !== b.maxQueueIndex) return a.maxQueueIndex - b.maxQueueIndex;
     if (a.totalPlayCount !== b.totalPlayCount) return a.totalPlayCount - b.totalPlayCount;
-    return a.totalWaitAge - b.totalWaitAge;
+    if (a.totalWaitAge !== b.totalWaitAge) return a.totalWaitAge - b.totalWaitAge;
+
+    return a.randomTie - b.randomTie;
   });
 
   return validCandidates[0] ?? null;
