@@ -63,6 +63,54 @@ function validateNewPassword(password) {
   return null;
 }
 
+playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
+  const { sessionCode } = joinSchema.parse(req.body || {});
+
+  const playerId = req.user?._id || req.user?.id;
+
+  if (!playerId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const session = await findActiveSessionByCode(sessionCode);
+
+  if (!session) {
+    return res.status(404).json({
+      message: 'Kode sesi tidak ditemukan atau sesi belum aktif.',
+    });
+  }
+
+  const currentPlayer = await findPlayerById(playerId);
+
+  if (!currentPlayer) {
+    return res.status(404).json({
+      message: 'Akun pemain tidak ditemukan.',
+    });
+  }
+
+  if (currentPlayer.status === 'playing' && currentPlayer.session !== session._id) {
+    return res.status(409).json({
+      message: 'Kamu masih sedang bermain di sesi lain.',
+    });
+  }
+
+  const player = await joinPlayerToSession(playerId, session._id);
+
+  const snapshot = await getSessionSnapshot(session._id);
+
+  emitToSession(session._id, 'player:joined', publicPlayer(player));
+  emitToSession(session._id, 'snapshot:update', snapshot);
+
+  res.json({
+    message: 'Berhasil bergabung ke sesi.',
+    data: {
+      player: publicPlayer(player),
+      session,
+      snapshot,
+    },
+  });
+}));
+
 playerRouter.post(
   '/me/profile-photo',
   requireAuth,
