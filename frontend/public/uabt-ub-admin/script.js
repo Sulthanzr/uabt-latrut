@@ -313,16 +313,35 @@ async function loadSnapshot() {
   renderAll();
 }
 
-function csvSafe(value) {
-  const raw = value === null || value === undefined ? '' : String(value);
-
-  // Mencegah formula injection saat CSV dibuka di Excel/Sheets
-  const protectedValue = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
-
-  return `"${protectedValue.replace(/"/g, '""')}"`;
+function excelText(value) {
+  if (value === null || value === undefined) return '';
+  const text = String(value);
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
 }
 
-function exportMatchesToSpreadsheet() {
+function safeFileName(value) {
+  return String(value || 'riwayat-match')
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+}
+
+function sessionTimeLabel(session) {
+  const date = session?.startAt ? new Date(session.startAt) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return 'Jam -';
+  }
+
+  return `Jam ${date.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace('.', ':')}`;
+}
+
+async function exportMatchesToSpreadsheet() {
   const matches = snapshot?.matches || [];
 
   if (!matches.length) {
@@ -330,9 +349,73 @@ function exportMatchesToSpreadsheet() {
     return;
   }
 
-  const session = snapshot?.session;
+  if (!window.ExcelJS) {
+    toast('Library Excel belum siap. Refresh halaman lalu coba lagi.', 'error');
+    return;
+  }
 
-  const headers = [
+  const session = snapshot?.session || {};
+  const sortedMatches = matches
+    .slice()
+    .sort((a, b) => Number(a.matchNo || 0) - Number(b.matchNo || 0));
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'UABT UB';
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet('Riwayat Match', {
+    views: [{ state: 'frozen', ySplit: 8 }],
+    pageSetup: {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    },
+  });
+
+  sheet.columns = [
+    { key: 'no', width: 11 },
+    { key: 'gameType', width: 15 },
+    { key: 'teamA', width: 46 },
+    { key: 'vs', width: 6 },
+    { key: 'teamB', width: 46 },
+    { key: 'score', width: 18 },
+    { key: 'winner', width: 24 },
+    { key: 'status', width: 18 },
+  ];
+
+  sheet.mergeCells('A2:H2');
+  sheet.mergeCells('A3:H3');
+  sheet.mergeCells('A4:H4');
+  sheet.mergeCells('A5:H5');
+  sheet.mergeCells('A6:H6');
+
+  sheet.getCell('A2').value = excelText(session.title || 'Nama Sesi');
+  sheet.getCell('A3').value = excelText(sessionTimeLabel(session));
+  sheet.getCell('A4').value = excelText(session.court || 'Court -');
+  sheet.getCell('A5').value = excelText(`Kode Sesi ${session.code || '-'}`);
+  sheet.getCell('A6').value = excelText(`PJ ${session.pj || '-'}`);
+
+  ['A2', 'A3', 'A4', 'A5', 'A6'].forEach((cellRef) => {
+    const cell = sheet.getCell(cellRef);
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.font = {
+      name: 'Calibri',
+      bold: true,
+      size: cellRef === 'A2' ? 14 : 12,
+    };
+  });
+
+  sheet.getRow(1).height = 22;
+  sheet.getRow(2).height = 24;
+  sheet.getRow(3).height = 22;
+  sheet.getRow(4).height = 22;
+  sheet.getRow(5).height = 22;
+  sheet.getRow(6).height = 22;
+  sheet.getRow(7).height = 12;
+
+  const headerRow = sheet.getRow(8);
+  headerRow.values = [
     'No Match',
     'Tipe Game',
     'Tim A',
@@ -341,36 +424,85 @@ function exportMatchesToSpreadsheet() {
     'Skor',
     'Pemenang',
     'Status',
-    'Kode Sesi',
-    'Nama Sesi',
-    'Court',
-    'PJ',
   ];
 
-  const rows = matches
-    .slice()
-    .sort((a, b) => Number(a.matchNo || 0) - Number(b.matchNo || 0))
-    .map((m) => [
-      m.matchNo ? `#${m.matchNo}` : '-',
-      m.gameType || '-',
-      teamText(m.team1),
+  headerRow.height = 22;
+  headerRow.font = { name: 'Calibri', bold: true, size: 12 };
+  headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+
+  sortedMatches.forEach((m, index) => {
+    const row = sheet.getRow(9 + index);
+
+    row.values = [
+      m.matchNo ? `#${m.matchNo}` : `#${index + 1}`,
+      excelText(m.gameType || '-'),
+      excelText(teamText(m.team1)),
       'vs',
-      teamText(m.team2),
-      m.score || '',
-      winnerText(m.winner),
-      m.status || '-',
-      session?.code || '',
-      session?.title || '',
-      session?.court || '',
-      session?.pj || '',
-    ]);
+      excelText(teamText(m.team2)),
+      excelText(m.score || ''),
+      excelText(winnerText(m.winner)),
+      excelText(m.status || '-'),
+    ];
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map(csvSafe).join(','))
-    .join('\r\n');
+    row.height = 22;
+  });
 
-  const blob = new Blob([`\uFEFF${csv}`], {
-    type: 'text/csv;charset=utf-8;',
+  const lastRow = 8 + sortedMatches.length;
+
+  for (let rowNumber = 8; rowNumber <= lastRow; rowNumber += 1) {
+    const row = sheet.getRow(rowNumber);
+
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } },
+      };
+
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: colNumber === 3 || colNumber === 5 ? 'left' : 'center',
+        wrapText: true,
+      };
+
+      cell.font = {
+        name: 'Calibri',
+        size: 11,
+        bold: rowNumber === 8,
+      };
+    });
+  }
+
+  headerRow.eachCell({ includeEmpty: true }, (cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFEAF4DD' },
+    };
+  });
+
+  sheet.getCell('A2').border = {
+    top: { style: 'thin', color: { argb: 'FF000000' } },
+    left: { style: 'thin', color: { argb: 'FF000000' } },
+    right: { style: 'thin', color: { argb: 'FF000000' } },
+  };
+
+  ['A2:H2', 'A3:H3', 'A4:H4', 'A5:H5', 'A6:H6'].forEach((rangeRef) => {
+    sheet.getCell(rangeRef.split(':')[0]).alignment = {
+      horizontal: 'center',
+      vertical: 'middle',
+    };
+  });
+
+  sheet.eachRow((row) => {
+    row.commit?.();
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 
   const url = URL.createObjectURL(blob);
@@ -378,9 +510,10 @@ function exportMatchesToSpreadsheet() {
 
   const today = new Date().toISOString().slice(0, 10);
   const code = session?.code || 'tanpa-sesi';
+  const name = safeFileName(session?.title || 'riwayat-match');
 
   a.href = url;
-  a.download = `riwayat-match-${code}-${today}.csv`;
+  a.download = `${name}-${code}-${today}.xlsx`;
 
   document.body.appendChild(a);
   a.click();
@@ -388,13 +521,18 @@ function exportMatchesToSpreadsheet() {
 
   URL.revokeObjectURL(url);
 
-  toast('Riwayat match berhasil diexport');
-  addLog('Admin export riwayat match ke spreadsheet', 'fa-file-export');
+  toast('Riwayat match berhasil diexport ke Excel');
+  addLog('Admin export riwayat match ke Excel', 'fa-file-export');
 }
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
   if (e.target.closest('#exportSpreadsheetBtn')) {
-    exportMatchesToSpreadsheet();
+    try {
+      await exportMatchesToSpreadsheet();
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Gagal export Excel', 'error');
+    }
   }
 });
 
