@@ -1,21 +1,51 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const profileBucket = process.env.SUPABASE_PROFILE_BUCKET || 'profile-photos';
+const supabaseUrl = String(process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const profileBucket = String(process.env.SUPABASE_PROFILE_BUCKET || 'profile-photos')
+  .trim()
+  .replace(/^\/+|\/+$/g, '');
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  console.warn('[supabase] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY belum diset.');
+let supabaseClient = null;
+
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('Konfigurasi Supabase belum lengkap. Cek SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY.');
+  }
+
+  if (!supabaseUrl.endsWith('.supabase.co')) {
+    throw new Error('SUPABASE_URL harus berupa Project URL, contoh: https://xxxxx.supabase.co');
+  }
+
+  if (!supabaseClient) {
+    supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+  }
+
+  return supabaseClient;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+function safeId(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '');
+}
 
 export function profilePhotoPath(playerId) {
-  return `players/${playerId}/profile.jpg`;
+  const id = safeId(playerId);
+
+  if (!id) {
+    throw new Error('Player ID tidak valid untuk path foto profil.');
+  }
+
+  return `players/${id}/profile.jpg`;
 }
 
 export async function uploadProfilePhotoToSupabase({ playerId, buffer, contentType }) {
+  const supabase = getSupabaseClient();
   const path = profilePhotoPath(playerId);
+
+  console.log('[supabase] upload bucket:', profileBucket);
+  console.log('[supabase] upload path:', path);
 
   const { error } = await supabase.storage
     .from(profileBucket)
@@ -37,6 +67,7 @@ export async function uploadProfilePhotoToSupabase({ playerId, buffer, contentTy
 }
 
 export async function deleteProfilePhotoFromSupabase(playerId) {
+  const supabase = getSupabaseClient();
   const path = profilePhotoPath(playerId);
 
   const { error } = await supabase.storage
