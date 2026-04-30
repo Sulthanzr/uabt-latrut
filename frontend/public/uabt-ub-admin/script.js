@@ -11,19 +11,29 @@ if (!AUTH_TOKEN || CURRENT_USER?.role !== 'admin') {
 let snapshot = null;
 let sessions = [];
 
-function normalizeAdminName(value = '') {
-  const raw = String(value || '').trim();
-  const key = raw.toLowerCase();
+const VALID_PJ_NAMES = ['Davy', 'David', 'Bagas', 'Sulthan'];
 
-  const map = {
-    davy: 'Davy',
-    david: 'David',
-    bagas: 'Bagas',
-    sulthan: 'Sulthan',
-    admin: 'Admin',
-  };
+function formatUsernameAsPj(username = '') {
+  const clean = String(username || '').trim().toLowerCase();
 
-  return map[key] || raw || 'Admin';
+  if (!clean) return '';
+
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function getLoggedInAdminDisplayName() {
+  return (
+    CURRENT_USER?.nama ||
+    CURRENT_USER?.name ||
+    CURRENT_USER?.username ||
+    'Admin'
+  );
+}
+
+function getLoggedInPjName() {
+  const pjName = formatUsernameAsPj(CURRENT_USER?.username);
+
+  return VALID_PJ_NAMES.includes(pjName) ? pjName : '';
 }
 
 function getLoggedInAdminName() {
@@ -46,19 +56,20 @@ function getInitials(name = 'Admin') {
 }
 
 function renderLoggedInAdmin() {
-  const adminName = getLoggedInAdminName();
+  const adminDisplayName = getLoggedInAdminDisplayName();
+  const pjName = getLoggedInPjName();
 
   const avatar = document.getElementById('adminAvatar');
   const displayName = document.getElementById('adminDisplayName');
   const roleLabel = document.getElementById('adminRoleLabel');
   const sessionPj = document.getElementById('sessionPj');
 
-  if (avatar) avatar.textContent = getInitials(adminName);
-  if (displayName) displayName.textContent = adminName;
+  if (avatar) avatar.textContent = getInitials(adminDisplayName);
+  if (displayName) displayName.textContent = adminDisplayName;
   if (roleLabel) roleLabel.textContent = 'Administrator';
 
   if (sessionPj) {
-    sessionPj.value = adminName;
+    sessionPj.value = pjName || 'Username admin belum valid';
   }
 }
 
@@ -665,11 +676,13 @@ async function createSessionFromForm() {
   const location = document.getElementById('sessionLocation')?.value.trim() || 'GOR UB';
   const courtCount = document.getElementById('sessionCourtCount')?.value || 1;
   const court = buildCourtList(courtCount);
-  const pj = getLoggedInAdminName();
+  const pj = getLoggedInPjName();
 
   if (!title) return toast('Nama sesi wajib diisi', 'error');
   if (!startAt) return toast('Jam sesi wajib diisi', 'error');
-
+  if (!pj) {
+    return toast('Username admin belum sesuai untuk PJ. Gunakan username: davy, david, bagas, atau sulthan.', 'error');
+  }
   try {
     const session = await api('/api/sessions', {
       method: 'POST',
