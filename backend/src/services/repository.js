@@ -531,6 +531,206 @@ export async function generateMatchTransactional({ sessionId, tolerance = 0, fal
   }
 }
 
+function parseCourts(courtText = 'Court 1') {
+  return String(courtText || 'Court 1')
+    .split(',')
+    .map((court) => court.trim())
+    .filter(Boolean);
+}
+
+function removePlayersByIds(players, usedIds) {
+  const used = new Set(usedIds.map(String));
+  return players.filter((player) => !used.has(String(player._id || player.id)));
+}
+
+export async function generateMatchesBatchTransactional({
+  sessionId,
+  tolerance = 0,
+  fallbackTolerance = 2,
+  maxMatches,
+} = {}) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const sessionResult = sessionId
+      ? await client.query('SELECT * FROM sessions WHERE id = $1 FOR UPDATE', [sessionId])
+      : await client.query('SELECT * FROM sessions WHERE is_active = true ORDER BY created_at DESC LIMIT 1 FOR UPDATE');
+
+    const session = toSession(sessionResult.rows[0]);
+
+    if (!session) {
+      await client.query('ROLLBACK');
+      return { error: { status: 404, message: 'Sesi aktif tidak ditemukan.' } };
+    }
+
+    const courts = parseCourts(session.court);
+
+    const playingCourtResult = await client.query(
+      `SELECT DISTINCT court
+       FROM matches
+       WHERE session_id = $1
+         AND status = 'playing'`,
+      [session._id]
+    );
+
+    const busyCourts = new Set(
+      playingCourtResult.rows.map((row) => String(row.court || '').trim())
+    );
+
+    const availableCourts = courts.filter((court) => !busyCourts.has(court));
+
+    if (!availableCourts.length) {
+      await client.query('ROLLBACK');
+      return {
+        error: {
+          status: 422,
+          message: 'Semua lapangan masih terpakai. Selesaikan match aktif dulu sebelum generate lagi.',
+        },
+      };
+    }
+
+    const waitingResult = await client.query(
+      `SELECT *
+       FROM players
+       WHERE session_id = $1
+         AND status = 'waiting'
+       ORDER BY jumlah_main ASC, waktu_hadir ASC
+       FOR UPDATE SKIP LOCKED`,
+      [session._id]
+    );
+
+    let waitingPlayers = waitingResult.rows.map(toPlayer);
+
+    if (waitingPlayers.length < 4) {
+      await client.query('ROLLBACK');
+      return {
+        error: {
+          status: 422,
+          message: `Kurang pemain. Butuh minimal 4, tersedia ${waitingPlayers.length}.`,
+        },
+      };
+    }
+
+    const maxByPlayers = Math.floor(waitingPlayers.length / 4);
+    const maxByCourts = availableCourts.length;
+    const requestedMax = Number.isInteger(maxMatches) && maxMatches > 0
+      ? maxMatches
+      : Number.MAX_SAFE_INTEGER;
+
+    const targetMatchCount = Math.min(maxByPlayers, maxByCourts, requestedMax);
+
+    const nextNoResult = await client.query(
+      'SELECT COALESCE(MAX(match_no), 0) + 1 AS next_no FROM matches WHERE session_id = $1',
+      [session._id]
+    );
+
+    let nextNo = Number(nextNoResult.rows[0].next_no || 1);
+    const createdMatches = [];
+
+    for (let index = 0; index < targetMatchCount; index += 1) {
+      let result = findBestMatch(waitingPlayers, { tolerance });
+      let toleranceUsed = tolerance;
+
+      if (!result && fallbackTolerance > tolerance) {
+        result = findBestMatch(waitingPlayers, { tolerance: fallbackTolerance });
+        toleranceUsed = fallbackTolerance;
+      }
+
+      if (!result) {
+        break;
+      }
+
+      const playerIds = [...result.team1, ...result.team2].map((player) => player._id);
+      const court = availableCourts[index] || session.court || 'Court 1';
+
+      const matchResult = await client.query(
+        `INSERT INTO matches (
+           session_id,
+           match_no,
+           court,
+           game_type,
+           team1_ids,
+           team2_ids,
+           team1_point,
+           team2_point,
+           tolerance_used,
+           status,
+           started_at
+         )
+         VALUES ($1,$2,$3,$4,$5::uuid[],$6::uuid[],$7,$8,$9,'playing',now())
+         RETURNING *`,
+        [
+          session._id,
+          nextNo,
+          court,
+          result.gameType,
+          result.team1.map((player) => player._id),
+          result.team2.map((player) => player._id),
+          result.team1Point,
+          result.team2Point,
+          toleranceUsed,
+        ]
+      );
+
+      const match = toMatch(matchResult.rows[0]);
+
+      const updated = await client.query(
+        `UPDATE players
+         SET jumlah_main = jumlah_main + 1,
+             status = 'playing',
+             current_match_id = $2,
+             updated_at = now()
+         WHERE id = ANY($1::uuid[])
+           AND status = 'waiting'
+         RETURNING *`,
+        [playerIds, match._id]
+      );
+
+      if (updated.rowCount !== 4) {
+        throw Object.assign(
+          new Error('Sebagian pemain sudah tidak tersedia untuk match ini.'),
+          { status: 409 }
+        );
+      }
+
+      createdMatches.push(match);
+      waitingPlayers = removePlayersByIds(waitingPlayers, playerIds);
+      nextNo += 1;
+    }
+
+    if (!createdMatches.length) {
+      await client.query('ROLLBACK');
+      return {
+        error: {
+          status: 422,
+          message: 'Belum ada kombinasi match valid untuk dibuat.',
+        },
+      };
+    }
+
+    await client.query('COMMIT');
+
+    return {
+      session,
+      matches: createdMatches,
+      meta: {
+        createdCount: createdMatches.length,
+        waitingBefore: waitingResult.rows.length,
+        remainingWaiting: waitingPlayers.length,
+        availableCourts,
+        usedCourts: createdMatches.map((match) => match.court),
+      },
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function completeMatchTransactional(id, { score = '', winner = '', returnToQueue = true }) {
   const client = await pool.connect();
 

@@ -8,6 +8,7 @@ import {
   completeMatchTransactional,
   findMatches,
   generateMatchTransactional,
+  generateMatchesBatchTransactional,
   populateMatch,
   updateMatchResult,
 } from '../services/repository.js';
