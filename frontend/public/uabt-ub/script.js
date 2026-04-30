@@ -222,6 +222,29 @@ function renderProfilePhoto(player = currentPlayer) {
 });
 }
 
+function renderCurrentPlayerFromCache() {
+  if (!currentPlayer) return;
+
+  const displayName = currentPlayer?.nama || currentPlayer?.username || 'Pemain UABT';
+
+  document.querySelectorAll('.hello-name').forEach((el) => {
+    el.textContent = displayName;
+  });
+
+  document.querySelectorAll('.profile-name').forEach((el) => {
+    el.textContent = displayName;
+  });
+
+  const gradeTag = document.querySelector('.profile-tags .tag');
+  if (gradeTag) {
+    gradeTag.textContent = currentPlayer?.grade ? `Grade ${currentPlayer.grade}` : 'Grade -';
+  }
+
+  ensurePlayerForm();
+  renderAccountSecurityForm();
+  renderProfilePhoto(currentPlayer);
+}
+
 function setCount(el, value) {
   if (!el) return;
   el.dataset.count = String(value ?? 0);
@@ -275,7 +298,7 @@ function ensurePlayerForm() {
   }
 
   if (bioInput && !bioInput.dataset.userEdited) {
-    bioInput.value = currentPlayer?.bio || 'Anggota UABT UB.';
+    bioInput.value = currentPlayer?.bio || '';
   }
 }
 
@@ -335,8 +358,13 @@ function renderDashboard() {
     [...(m.team1 || []), ...(m.team2 || [])].some((p) => String(p._id || p) === myId)
   );
 
-  document.querySelector('.hello-name').textContent = currentPlayer?.nama || 'Pemain UABT';
-  document.querySelector('.profile-name').textContent = currentPlayer?.nama || 'Pemain UABT';
+  document.querySelectorAll('.hello-name').forEach((el) => {
+    el.textContent = currentPlayer?.nama || currentPlayer?.username || 'Pemain UABT';
+  });
+
+  document.querySelectorAll('.profile-name').forEach((el) => {
+    el.textContent = currentPlayer?.nama || currentPlayer?.username || 'Pemain UABT';
+  });
   renderProfilePhoto(currentPlayer);
   document.querySelector('.profile-tags .tag').textContent = currentPlayer?.grade ? `Grade ${currentPlayer.grade}` : 'Grade -';
 
@@ -1006,6 +1034,8 @@ socket?.on('connect', () => {
     socket.emit('session:join', snapshot.session._id);
   }
 });
+
+renderCurrentPlayerFromCache();
 
 loadSnapshot().catch((err) => {
   console.error(err);
