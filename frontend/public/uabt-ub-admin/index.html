@@ -37,9 +37,14 @@
 
     <div class="sidebar-footer">
       <div class="user-chip">
-        <div class="user-avatar">AD</div>
-        <div class="user-meta"><strong>Admin</strong><span>Administrator</span></div>
-        <a href="../uabt-ub-auth/login.html" class="user-logout" title="Keluar"><i class="fa-solid fa-right-from-bracket"></i></a>
+        <div class="user-avatar" id="adminAvatar">AD</div>
+        <div class="user-meta">
+          <strong id="adminDisplayName">Admin</strong>
+          <span id="adminRoleLabel">Administrator</span>
+        </div>
+        <a href="../uabt-ub-auth/login.html" class="user-logout" title="Keluar">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
       </div>
     </div>
   </aside>
@@ -125,7 +130,7 @@
             <div class="field"><label>Tempat / GOR</label><input type="text" id="sessionLocation" placeholder="Contoh: GOR UB" value="GOR UB" /></div>
             <div class="field"><label>Lapangan</label><input type="text" id="sessionCourt" placeholder="Contoh: Court A" value="Court A" /></div>
             <div class="field"><label>PJ Sesi</label>
-              <select id="sessionPj" class="input-block">
+              <select id="sessionPj" class="input-block" disabled>
                 <option value="Davy">Davy</option>
                 <option value="David">David</option>
                 <option value="Bagas">Bagas</option>

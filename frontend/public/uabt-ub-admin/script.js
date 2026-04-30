@@ -11,6 +11,68 @@ if (!AUTH_TOKEN || CURRENT_USER?.role !== 'admin') {
 let snapshot = null;
 let sessions = [];
 
+function normalizeAdminName(value = '') {
+  const raw = String(value || '').trim();
+  const key = raw.toLowerCase();
+
+  const map = {
+    davy: 'Davy',
+    david: 'David',
+    bagas: 'Bagas',
+    sulthan: 'Sulthan',
+    admin: 'Admin',
+  };
+
+  return map[key] || raw || 'Admin';
+}
+
+function getLoggedInAdminName() {
+  return normalizeAdminName(
+    CURRENT_USER?.nama ||
+    CURRENT_USER?.name ||
+    CURRENT_USER?.username ||
+    'Admin'
+  );
+}
+
+function getInitials(name = 'Admin') {
+  return String(name)
+    .trim()
+    .split(/\s+/)
+    .map((word) => word[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function renderLoggedInAdmin() {
+  const adminName = getLoggedInAdminName();
+
+  const avatar = document.getElementById('adminAvatar');
+  const displayName = document.getElementById('adminDisplayName');
+  const roleLabel = document.getElementById('adminRoleLabel');
+  const sessionPj = document.getElementById('sessionPj');
+
+  if (avatar) avatar.textContent = getInitials(adminName);
+  if (displayName) displayName.textContent = adminName;
+  if (roleLabel) roleLabel.textContent = 'Administrator';
+
+  if (sessionPj) {
+    const optionExists = [...sessionPj.options].some((option) => option.value === adminName);
+
+    if (!optionExists) {
+      const option = document.createElement('option');
+      option.value = adminName;
+      option.textContent = adminName;
+      sessionPj.appendChild(option);
+    }
+
+    sessionPj.value = adminName;
+  }
+}
+
+renderLoggedInAdmin();
+
 const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
@@ -550,19 +612,24 @@ async function createSessionFromForm() {
   const startAt = document.getElementById('sessionStartAt')?.value;
   const location = document.getElementById('sessionLocation')?.value.trim() || 'GOR UB';
   const court = document.getElementById('sessionCourt')?.value.trim() || 'Court A';
-  const pj = document.getElementById('sessionPj')?.value || 'Sulthan';
+  const pj = getLoggedInAdminName();
+
   if (!title) return toast('Nama sesi wajib diisi', 'error');
   if (!startAt) return toast('Jam sesi wajib diisi', 'error');
+
   try {
     const session = await api('/api/sessions', {
       method: 'POST',
       body: JSON.stringify({ title, startAt, location, court, pj, isActive: true }),
     });
+
     document.getElementById('sessionTitle').value = '';
     toast(`Sesi aktif dibuat. Kode: ${session.code}`);
     addLog(`Sesi ${session.title} dibuat dengan kode ${session.code}`, 'fa-calendar-plus');
     await loadSnapshot();
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (err) {
+    toast(err.message, 'error');
+  }
 }
 document.getElementById('saveSessionBtn')?.addEventListener('click', createSessionFromForm);
 
