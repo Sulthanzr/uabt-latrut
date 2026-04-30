@@ -58,15 +58,6 @@ function renderLoggedInAdmin() {
   if (roleLabel) roleLabel.textContent = 'Administrator';
 
   if (sessionPj) {
-    const optionExists = [...sessionPj.options].some((option) => option.value === adminName);
-
-    if (!optionExists) {
-      const option = document.createElement('option');
-      option.value = adminName;
-      option.textContent = adminName;
-      sessionPj.appendChild(option);
-    }
-
     sessionPj.value = adminName;
   }
 }

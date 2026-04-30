@@ -129,13 +129,16 @@
             <div class="field"><label>Jam Sesi</label><input type="datetime-local" id="sessionStartAt" /></div>
             <div class="field"><label>Tempat / GOR</label><input type="text" id="sessionLocation" placeholder="Contoh: GOR UB" value="GOR UB" /></div>
             <div class="field"><label>Lapangan</label><input type="text" id="sessionCourt" placeholder="Contoh: Court A" value="Court A" /></div>
-            <div class="field"><label>PJ Sesi</label>
-              <select id="sessionPj" class="input-block" disabled>
-                <option value="Davy">Davy</option>
-                <option value="David">David</option>
-                <option value="Bagas">Bagas</option>
-                <option value="Sulthan">Sulthan</option>
-              </select>
+            <div class="field">
+              <label>PJ Sesi</label>
+              <input
+                type="text"
+                id="sessionPj"
+                class="input-block"
+                value=""
+                readonly
+                title="PJ otomatis sesuai admin yang login"
+              />
             </div>
           </div>
           <button class="btn-primary big" id="saveSessionBtn"><i class="fa-solid fa-floppy-disk"></i> Save Sesi</button>
