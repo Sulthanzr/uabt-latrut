@@ -177,13 +177,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .hello-eyebrow { font-size: 13px; color: var(--primary-dark); font-weight: 600; opacity: 0.85; }
 .hello-name { font-family: 'Poppins'; font-size: 28px; font-weight: 800; color: var(--primary-dark); margin: 4px 0 6px; }
 .hello-sub { font-size: 13px; color: var(--primary-dark); opacity: 0.8; }
-.hello-illu {
-  width: 84px; height: 84px; border-radius: 50%;
-  background: rgba(255,255,255,0.45); backdrop-filter: blur(8px);
-  display: grid; place-items: center; font-size: 38px;
-  color: var(--primary-dark); flex-shrink: 0; z-index: 1;
-  animation: float 3s ease-in-out infinite;
-}
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-8px) rotate(10deg); } }
 
 /* ===== Stats ===== */
@@ -830,14 +823,12 @@ body.modal-open {
 
 .profile-photo-preview-wrap,
 .profile-pic,
-.profile-photo-hero,
 .top-avatar-btn {
   overflow: hidden;
 }
 
 .profile-photo-preview-wrap img,
 .profile-pic img,
-.profile-photo-hero img,
 .top-avatar-btn img {
   width: 100%;
   height: 100%;
@@ -862,7 +853,6 @@ body.modal-open {
 
 .profile-photo-preview-wrap span,
 .profile-pic span,
-.profile-photo-hero span,
 .top-avatar-btn span {
   width: 100%;
   height: 100%;

@@ -175,10 +175,6 @@ function renderProfilePhoto(player = currentPlayer) {
 
   const targets = [
     {
-      img: document.getElementById('heroAvatarImg'),
-      fallback: document.getElementById('heroAvatarFallback'),
-    },
-    {
       img: document.getElementById('topAvatarImg'),
       fallback: document.getElementById('topAvatarFallback'),
     },
@@ -748,10 +744,6 @@ document.getElementById('openProfileBtn')?.addEventListener('click', () => {
   goToPage('profile');
 });
 
-document.getElementById('heroAvatarBox')?.addEventListener('click', () => {
-  goToPage('profile');
-});
-
 document.getElementById('chooseProfilePhotoBtn')?.addEventListener('click', () => {
   document.getElementById('profilePhotoInput')?.click();
 });
@@ -947,10 +939,6 @@ document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('
 }));
 
 document.getElementById('openProfileBtn')?.addEventListener('click', () => {
-  goToPage('profile');
-});
-
-document.getElementById('heroAvatarBox')?.addEventListener('click', () => {
   goToPage('profile');
 });
 
