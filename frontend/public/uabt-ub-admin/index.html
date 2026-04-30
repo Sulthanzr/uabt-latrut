@@ -128,7 +128,17 @@
             <div class="field"><label>Nama Sesi</label><input type="text" id="sessionTitle" placeholder="Contoh: Sesi Reguler Jumat" /></div>
             <div class="field"><label>Jam Sesi</label><input type="datetime-local" id="sessionStartAt" /></div>
             <div class="field"><label>Tempat / GOR</label><input type="text" id="sessionLocation" placeholder="Contoh: GOR UB" value="GOR UB" /></div>
-            <div class="field"><label>Lapangan</label><input type="text" id="sessionCourt" placeholder="Contoh: Court A" value="Court A" /></div>
+            <div class="field">
+              <label>Jumlah Lapangan</label>
+              <input
+                type="number"
+                id="sessionCourtCount"
+                min="1"
+                max="10"
+                value="1"
+                placeholder="Contoh: 2"
+              />
+            </div>
             <div class="field">
               <label>PJ Sesi</label>
               <input
