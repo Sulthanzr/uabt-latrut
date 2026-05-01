@@ -252,15 +252,30 @@ document.getElementById('clearLog')?.addEventListener('click', () => {
 
 async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+
   if (AUTH_TOKEN) headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+
   const res = await fetch(`${API_BASE}${path}`, {
     headers,
     ...options,
   });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.message || 'Request gagal');
+
+  const text = await res.text();
+
+  let body = {};
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    body = {};
+  }
+
+  if (!res.ok) {
+    throw new Error(body.message || `Request gagal (${res.status})`);
+  }
+
   return body.data ?? body;
 }
+
 function gradePoint(grade) { return { A: 3, B: 2, C: 1 }[grade] || 0; }
 function playerText(p) { return `${p.nama} <span class="muted">${p.grade}/${p.gender} · ${p.jumlah_main}x</span>`; }
 function teamText(team) { return (team || []).map((p) => `${p.nama} (${p.grade})`).join(' / '); }
@@ -392,6 +407,27 @@ function renderGenerate() {
   const note = generateCard?.querySelector('.muted.center.small');
 
   const queueCount = snapshot?.queue?.length || 0;
+  const queuePreview = generateCard?.querySelector('.empty');
+
+  if (queuePreview) {
+    if (!queueCount) {
+      queuePreview.innerHTML = `
+        <i class="fa-solid fa-bullseye"></i>
+        <p>Belum ada pemain</p>
+      `;
+    } else {
+      const previewPlayers = (snapshot?.queue || []).slice(0, 6);
+
+      queuePreview.innerHTML = `
+        <i class="fa-solid fa-users"></i>
+        <p><strong>${queueCount} pemain siap dimatchkan</strong></p>
+        <p class="muted small">
+          ${previewPlayers.map((p) => `${p.nama} (${p.grade}/${p.gender})`).join(' · ')}
+          ${queueCount > previewPlayers.length ? ` · +${queueCount - previewPlayers.length} lainnya` : ''}
+        </p>
+      `;
+    }
+  }
   const activeMatches = (snapshot?.matches || []).filter((m) => m.status === 'playing');
   const courts = parseCourtList(snapshot?.session?.court || 'Court 1');
 

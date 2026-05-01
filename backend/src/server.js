@@ -45,6 +45,12 @@ app.use('/api/matches', matchRouter);
 
 attachRealtime(io);
 
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    message: `Endpoint tidak ditemukan: ${req.method} ${req.originalUrl}`,
+  });
+});
+
 app.use((err, _req, res, _next) => {
   console.error(err);
   if (err?.name === 'ZodError') return res.status(400).json({ message: 'Validasi gagal.', errors: err.errors });

@@ -33,6 +33,81 @@ matchRouter.post('/generate', requireAuth, requireAdmin, asyncHandler(async (req
   res.status(201).json({ data: populated, snapshot });
 }));
 
+matchRouter.post('/generate-batch', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const body = z.object({
+    sessionId: z.string().optional(),
+    tolerance: z.number().int().min(0).max(2).optional().default(0),
+    fallbackTolerance: z.number().int().min(0).max(2).optional().default(2),
+    maxMatches: z.number().int().min(1).max(10).optional(),
+  }).parse(req.body ?? {});
+
+  const generated = await generateMatchesBatchTransactional(body);
+
+  if (generated.error) {
+    return res.status(generated.error.status).json({
+      message: generated.error.message,
+    });
+  }
+
+  const populatedMatches = await Promise.all(
+    generated.matches.map((match) => populateMatch(match))
+  );
+
+  const snapshot = await getSessionSnapshot(generated.session._id);
+
+  populatedMatches.forEach((match) => {
+    emitToSession(generated.session._id, 'match:generated', match);
+  });
+
+  emitToSession(generated.session._id, 'matches:generated', populatedMatches);
+  emitToSession(generated.session._id, 'snapshot:update', snapshot);
+
+  res.status(201).json({
+    data: {
+      matches: populatedMatches,
+      meta: generated.meta,
+    },
+    snapshot,
+  });
+}));
+
+matchRouter.post('/generate-batch', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const body = z.object({
+    sessionId: z.string().optional(),
+    tolerance: z.number().int().min(0).max(2).optional().default(0),
+    fallbackTolerance: z.number().int().min(0).max(2).optional().default(2),
+    maxMatches: z.number().int().min(1).max(10).optional(),
+  }).parse(req.body ?? {});
+
+  const generated = await generateMatchesBatchTransactional(body);
+
+  if (generated.error) {
+    return res.status(generated.error.status).json({
+      message: generated.error.message,
+    });
+  }
+
+  const populatedMatches = await Promise.all(
+    generated.matches.map((match) => populateMatch(match))
+  );
+
+  const snapshot = await getSessionSnapshot(generated.session._id);
+
+  populatedMatches.forEach((match) => {
+    emitToSession(generated.session._id, 'match:generated', match);
+  });
+
+  emitToSession(generated.session._id, 'snapshot:update', snapshot);
+
+  res.status(201).json({
+    data: {
+      matches: populatedMatches,
+      meta: generated.meta,
+      snapshot,
+    },
+  });
+}));
+
 matchRouter.patch('/:id/complete', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const body = z.object({
     score: z.string().optional().default(''),
