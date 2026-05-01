@@ -20,6 +20,46 @@ const createSessionSchema = z.object({
   isActive: z.boolean().optional().default(true),
 });
 
+const recentSessionCreateLocks = new Map();
+const SESSION_CREATE_LOCK_MS = 10000;
+
+function makeSessionCreateKey(user, payload) {
+  const userId = user?._id || user?.id || user?.username || 'unknown';
+
+  return JSON.stringify({
+    userId,
+    title: payload.title,
+    location: payload.location,
+    court: payload.court,
+    pj: payload.pj,
+    startAt: payload.startAt ? new Date(payload.startAt).toISOString() : null,
+  });
+}
+
+function getRecentSessionCreate(key) {
+  const item = recentSessionCreateLocks.get(key);
+
+  if (!item) return null;
+
+  if (Date.now() - item.time > SESSION_CREATE_LOCK_MS) {
+    recentSessionCreateLocks.delete(key);
+    return null;
+  }
+
+  return item.session;
+}
+
+function rememberSessionCreate(key, session) {
+  recentSessionCreateLocks.set(key, {
+    time: Date.now(),
+    session,
+  });
+
+  setTimeout(() => {
+    recentSessionCreateLocks.delete(key);
+  }, SESSION_CREATE_LOCK_MS);
+}
+
 sessionRouter.get('/', requireAuth, requireAdmin, asyncHandler(async (_req, res) => {
   const sessions = await findSessions();
   res.json({ data: sessions });
@@ -32,10 +72,24 @@ sessionRouter.get('/active', asyncHandler(async (_req, res) => {
 
 sessionRouter.post('/', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const payload = createSessionSchema.parse(req.body);
+
+  const lockKey = makeSessionCreateKey(req.user, payload);
+  const recentSession = getRecentSessionCreate(lockKey);
+
+  if (recentSession) {
+    return res.status(200).json({
+      data: recentSession,
+      duplicated: true,
+      message: 'Sesi sudah dibuat. Request dobel diabaikan.',
+    });
+  }
+
   const session = await createSessionWithRetry({
     ...payload,
     code: payload.code ? payload.code.toUpperCase() : undefined,
   }, generateSessionCode);
+
+  rememberSessionCreate(lockKey, session);
 
   const snapshot = await getSessionSnapshot(session._id);
   emitGlobal('session:created', session);

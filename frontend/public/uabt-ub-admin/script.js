@@ -11,6 +11,58 @@ if (!AUTH_TOKEN || CURRENT_USER?.role !== 'admin') {
 let snapshot = null;
 let sessions = [];
 
+const ACTION_LOCKS = new Map();
+
+function setButtonBusy(button, isBusy, busyText = 'Memproses...') {
+  if (!button) return;
+
+  if (isBusy) {
+    if (!button.dataset.originalHtml) {
+      button.dataset.originalHtml = button.innerHTML;
+    }
+
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${busyText}`;
+    return;
+  }
+
+  button.disabled = false;
+  button.classList.remove('is-loading');
+
+  if (button.dataset.originalHtml) {
+    button.innerHTML = button.dataset.originalHtml;
+    delete button.dataset.originalHtml;
+  }
+}
+
+async function runActionOnce(actionKey, button, handler, options = {}) {
+  const {
+    busyText = 'Memproses...',
+    cooldown = 1200,
+    showDuplicateToast = false,
+  } = options;
+
+  if (ACTION_LOCKS.has(actionKey)) {
+    if (showDuplicateToast) {
+      toast('Permintaan sedang diproses. Tunggu sebentar.', 'info');
+    }
+    return null;
+  }
+
+  ACTION_LOCKS.set(actionKey, true);
+  setButtonBusy(button, true, busyText);
+
+  try {
+    return await handler();
+  } finally {
+    setTimeout(() => {
+      ACTION_LOCKS.delete(actionKey);
+      setButtonBusy(button, false);
+    }, cooldown);
+  }
+}
+
 const VALID_PJ_NAMES = ['Davy', 'David', 'Bagas', 'Sulthan'];
 
 function formatUsernameAsPj(username = '') {
@@ -697,7 +749,19 @@ async function createSessionFromForm() {
     toast(err.message, 'error');
   }
 }
-document.getElementById('saveSessionBtn')?.addEventListener('click', createSessionFromForm);
+
+document.getElementById('saveSessionBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'create-session',
+    event.currentTarget,
+    createSessionFromForm,
+    {
+      busyText: 'Menyimpan sesi...',
+      cooldown: 1800,
+      showDuplicateToast: true,
+    }
+  );
+});
 
 document.addEventListener('click', async (e) => {
   const closeSessionBtn = e.target.closest('[data-close-session]');
@@ -771,7 +835,20 @@ document.addEventListener('click', async (e) => {
 
   if (complete) {
     e.stopPropagation();
-    completeMatch(complete.dataset.complete);
+
+    const matchId = complete.dataset.complete;
+
+    runActionOnce(
+      `complete-match-${matchId}`,
+      complete,
+      () => completeMatch(matchId),
+      {
+        busyText: 'Menyelesaikan...',
+        cooldown: 1500,
+        showDuplicateToast: true,
+      }
+    );
+
     return;
   }
 
@@ -794,44 +871,61 @@ document.getElementById('resetAntrean')?.addEventListener('click', async () => {
   addLog('Admin mencoba reset antrean', 'fa-rotate');
 });
 
-document.getElementById('generateBtn')?.addEventListener('click', async () => {
-  try {
-    const result = await api('/api/matches/generate-batch', {
-      method: 'POST',
-      body: JSON.stringify({
-        sessionId: snapshot.session?._id,
-        tolerance: 0,
-        fallbackTolerance: 2,
-      }),
-    });
+document.getElementById('generateBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'generate-match',
+    event.currentTarget,
+    async () => {
+      try {
+        const result = await api('/api/matches/generate-batch', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionId: snapshot.session?._id,
+            tolerance: 0,
+            fallbackTolerance: 2,
+          }),
+        });
 
-    const matches = result.matches || [];
+        const matches = result.matches || [];
 
-    if (!matches.length) {
-      toast('Tidak ada match yang dibuat', 'info');
-      return;
+        if (!matches.length) {
+          toast('Tidak ada match yang dibuat', 'info');
+          return;
+        }
+
+        toast(`${matches.length} match berhasil dibuat`);
+
+        addLog(
+          `Generate ${matches.length} match: ${matches.map((m) => `#${m.matchNo} ${m.court || ''}`).join(', ')}`,
+          'fa-bolt'
+        );
+
+        await loadSnapshot();
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    },
+    {
+      busyText: 'Generate...',
+      cooldown: 1500,
+      showDuplicateToast: true,
     }
-
-    toast(`${matches.length} match berhasil dibuat`);
-
-    addLog(
-      `Generate ${matches.length} match: ${matches.map((m) => `#${m.matchNo} ${m.court || ''}`).join(', ')}`,
-      'fa-bolt'
-    );
-
-    await loadSnapshot();
-  } catch (err) {
-    toast(err.message, 'error');
-  }
+  );
 });
 
 async function completeMatch(matchId) {
   try {
-    const match = await api(`/api/matches/${matchId}/complete`, { method: 'PATCH', body: JSON.stringify({ returnToQueue: true }) });
+    const match = await api(`/api/matches/${matchId}/complete`, {
+      method: 'PATCH',
+      body: JSON.stringify({ returnToQueue: true }),
+    });
+
     toast(`Match #${match.matchNo} selesai`);
     addLog(`Match #${match.matchNo} selesai`, 'fa-flag-checkered');
     await loadSnapshot();
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (err) {
+    toast(err.message, 'error');
+  }
 }
 
 document.querySelector('.user-logout')?.addEventListener('click', () => {
