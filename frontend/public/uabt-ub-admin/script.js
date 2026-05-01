@@ -164,12 +164,75 @@ document.getElementById('addSesi')?.addEventListener('click', () => goToPage('sc
 
 const toastEl = document.getElementById('toast');
 let toastTimer;
+
 function toast(msg, type = 'success') {
   clearTimeout(toastTimer);
   const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info';
   toastEl.className = `toast show ${type}`;
   toastEl.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+}
+
+function showConfirmDialog({
+  title = 'Konfirmasi!',
+  message = '',
+  confirmText = 'IYA',
+  cancelText = 'TIDAK',
+  danger = false,
+} = {}) {
+  return new Promise((resolve) => {
+    document.querySelector('.confirm-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+
+    overlay.innerHTML = `
+      <div class="confirm-dialog" role="dialog" aria-modal="true">
+        <h2>${title}</h2>
+        <p>${message}</p>
+
+        <div class="confirm-actions">
+          <button type="button" class="${danger ? 'confirm-btn-danger' : 'confirm-btn-primary'}" data-confirm-yes>
+            ${confirmText}
+          </button>
+          <button type="button" class="confirm-btn-cancel" data-confirm-no>
+            ${cancelText}
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = (value) => {
+      overlay.classList.remove('show');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(value);
+      }, 160);
+    };
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+      overlay.querySelector('[data-confirm-no]')?.focus();
+    });
+
+    overlay.querySelector('[data-confirm-yes]')?.addEventListener('click', () => close(true));
+    overlay.querySelector('[data-confirm-no]')?.addEventListener('click', () => close(false));
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) close(false);
+    });
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        document.removeEventListener('keydown', onKeyDown);
+        close(false);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+  });
 }
 
 const logList = document.getElementById('logList');
@@ -785,19 +848,38 @@ document.addEventListener('click', async (e) => {
   if (closeSessionBtn) {
     e.stopPropagation();
 
-    if (!confirm('Tutup sesi ini? Data match dan pemain tetap tersimpan.')) return;
+    const ok = await showConfirmDialog({
+      title: 'Konfirmasi!',
+      message: 'Apakah kamu yakin ingin menutup sesi ini? Data match dan pemain tetap tersimpan.',
+      confirmText: 'IYA, TUTUP',
+      cancelText: 'TIDAK',
+      danger: false,
+    });
 
-    try {
-      const session = await api(`/api/sessions/${closeSessionBtn.dataset.closeSession}/close`, {
-        method: 'PATCH',
-      });
+    if (!ok) return;
 
-      toast(`Sesi ${session.code} ditutup`);
-      addLog(`Sesi ${session.code} ditutup`, 'fa-calendar-xmark');
-      await loadSnapshot();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
+    runActionOnce(
+      `close-session-${closeSessionBtn.dataset.closeSession}`,
+      closeSessionBtn,
+      async () => {
+        try {
+          const session = await api(`/api/sessions/${closeSessionBtn.dataset.closeSession}/close`, {
+            method: 'PATCH',
+          });
+
+          toast(`Sesi ${session.code} ditutup`);
+          addLog(`Sesi ${session.code} ditutup`, 'fa-calendar-xmark');
+          await loadSnapshot();
+        } catch (err) {
+          toast(err.message, 'error');
+        }
+      },
+      {
+        busyText: 'Menutup...',
+        cooldown: 1500,
+        showDuplicateToast: true,
+      }
+    );
 
     return;
   }
@@ -826,12 +908,17 @@ document.addEventListener('click', async (e) => {
       const sessionCode = deleteSessionBtn.dataset.sessionCode || '-';
       const sessionTitle = deleteSessionBtn.dataset.sessionTitle || 'sesi ini';
 
-      const ok = confirm(
-        `Hapus ${sessionTitle} (${sessionCode})?\n\n` +
-        'Tindakan ini akan menghapus sesi dan seluruh match pada sesi tersebut. ' +
-        'Player yang join sesi ini akan di-reset keluar dari sesi.\n\n' +
-        'Tindakan ini tidak bisa dibatalkan.'
-      );
+      const ok = await showConfirmDialog({
+        title: 'Konfirmasi!',
+        message:
+          `Apakah kamu yakin ingin menghapus ${sessionTitle} (${sessionCode})? ` +
+          'Tindakan ini akan menghapus sesi dan seluruh match pada sesi tersebut. ' +
+          'Player yang join sesi ini akan di-reset keluar dari sesi. ' +
+          'Tindakan ini tidak bisa dibatalkan.',
+        confirmText: 'IYA, HAPUS',
+        cancelText: 'TIDAK',
+        danger: true,
+      });
 
       if (!ok) return;
 
