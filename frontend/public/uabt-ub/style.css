@@ -959,3 +959,565 @@ button.is-loading,
 button.is-loading i.fa-spinner {
   margin-right: 2px;
 }
+
+/* ===== Player Dashboard Mobile Friendly Polish ===== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+body.sidebar-open,
+body.modal-open {
+  overflow: hidden;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .card:hover,
+  .stat-card:hover,
+  .icon-btn:hover,
+  .btn-primary:hover,
+  .btn-danger:hover,
+  .btn-secondary:hover,
+  .nav-item:hover,
+  .schedule li:hover,
+  .step:hover,
+  .avatar:hover {
+    transform: none;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1100px) {
+  .bento {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-card,
+  .session-card,
+  .history-card {
+    grid-column: 1;
+  }
+
+  .profile-grid,
+  .join-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile drawer */
+@media (max-width: 820px) {
+  .app,
+  .app.collapsed,
+  .app.expanded {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .app.expanded::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: rgba(31, 51, 32, 0.38);
+    backdrop-filter: blur(3px);
+  }
+
+  .sidebar,
+  .app.collapsed .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(82vw, 320px);
+    height: 100dvh;
+    z-index: 50;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+
+  .app.expanded .sidebar {
+    transform: translateX(0);
+    box-shadow: 0 24px 70px rgba(31, 51, 32, 0.28);
+  }
+
+  .app.collapsed .brand-text,
+  .app.collapsed .nav-item span,
+  .app.collapsed .upgrade-card,
+  .app.collapsed .logout span,
+  .app.expanded .brand-text,
+  .app.expanded .nav-item span,
+  .app.expanded .upgrade-card,
+  .app.expanded .logout span {
+    display: flex;
+  }
+
+  .app.collapsed .brand-text,
+  .app.expanded .brand-text {
+    flex-direction: column;
+  }
+
+  .app.collapsed .nav-item,
+  .app.expanded .nav-item {
+    justify-content: flex-start;
+    padding: 12px 14px;
+  }
+
+  .app.collapsed .logout,
+  .app.expanded .logout {
+    justify-content: flex-start;
+  }
+
+  .main {
+    padding: max(16px, env(safe-area-inset-top)) 14px max(28px, env(safe-area-inset-bottom));
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    margin: -16px -14px 16px;
+    padding: max(14px, env(safe-area-inset-top)) 14px 12px;
+    background: linear-gradient(180deg, rgba(246, 251, 242, 0.96), rgba(246, 251, 242, 0.84));
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .header-left {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .header-brand {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .header-brand > div {
+    min-width: 0;
+  }
+
+  .header-logo {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+  }
+
+  .welcome {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .welcome-sub {
+    font-size: 11.5px;
+    max-width: 58vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-right {
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
+  .icon-btn,
+  .avatar,
+  .top-avatar-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    flex: 0 0 auto;
+  }
+
+  .top-avatar-btn {
+    border-radius: 50%;
+  }
+
+  .hello-card {
+    padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .hello-name {
+    font-size: 22px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-card {
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
+  }
+
+  .profile-crop-dialog {
+    width: min(94vw, 560px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  .profile-crop-body {
+    height: min(52vh, 420px);
+  }
+}
+
+/* Phone */
+@media (max-width: 640px) {
+  :root {
+    --radius: 15px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .stat-label {
+    font-size: 10.5px;
+  }
+
+  .stat-trend {
+    font-size: 11.5px;
+  }
+
+  .card,
+  .settings-card,
+  .profile-hero {
+    padding: 16px;
+    border-radius: 15px;
+  }
+
+  .card-head {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .card-head h3 {
+    font-size: 15px;
+  }
+
+  .chip-group {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .chip {
+    white-space: nowrap;
+  }
+
+  .chart {
+    height: 170px;
+    gap: 8px;
+  }
+
+  .chart-axis {
+    gap: 8px;
+  }
+
+  .session-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .profile-pic {
+    width: 96px;
+    height: 96px;
+    font-size: 32px;
+  }
+
+  .profile-photo-actions {
+    margin-top: 24px;
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-photo-actions .btn-primary,
+  .profile-photo-actions .btn-danger,
+  #saveProfileBtn,
+  #joinBtn,
+  #openResetPasswordBtn,
+  #updatePasswordBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .field input,
+  .field select,
+  .field textarea,
+  .otp-row input {
+    font-size: 16px;
+    min-height: 46px;
+  }
+
+  .btn-primary,
+  .btn-danger,
+  .btn-secondary {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .join-icon {
+    display: none;
+  }
+
+  .schedule li {
+    align-items: flex-start;
+  }
+
+  .session-code-pill {
+    align-self: flex-start;
+    white-space: nowrap;
+  }
+
+  .steps {
+    gap: 10px;
+  }
+
+  .step {
+    padding: 12px;
+  }
+
+  .toggle-row {
+    align-items: flex-start;
+  }
+
+  .theme-swatches {
+    gap: 10px;
+  }
+
+  .swatch {
+    width: 56px;
+    height: 56px;
+  }
+
+  .modal {
+    padding: 14px;
+  }
+
+  .modal-card {
+    padding: 22px 16px 16px;
+    border-radius: 16px;
+  }
+
+  .modal-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .match-notif-overlay {
+    align-items: flex-end;
+    padding: 14px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  .match-notif-modal {
+    max-width: 100%;
+    border-radius: 22px;
+    padding: 20px 16px;
+  }
+
+  .match-notif-header h3 {
+    font-size: 22px;
+  }
+
+  .match-notif-section .value {
+    font-size: 17px;
+  }
+
+  .match-notif-section .subvalue {
+    font-size: 14px;
+  }
+
+  .match-notif-footer {
+    justify-content: stretch;
+  }
+
+  .match-notif-footer .btn-primary {
+    width: 100%;
+  }
+
+  .profile-crop-modal {
+    padding: 14px;
+  }
+
+  .profile-crop-dialog {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .profile-crop-header h3 {
+    font-size: 20px;
+  }
+
+  .profile-crop-actions {
+    flex-direction: column;
+  }
+
+  .profile-crop-actions .btn-primary,
+  .profile-crop-actions .btn-secondary {
+    width: 100%;
+  }
+}
+
+/* Riwayat match table jadi card-list di HP */
+@media (max-width: 640px) {
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap th,
+  .table-wrap td,
+  .table-wrap tr {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    display: none;
+  }
+
+  .table-wrap tbody tr {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .table-wrap tbody tr:hover {
+    background: var(--surface-2);
+  }
+
+  .table-wrap td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+    text-align: right;
+  }
+
+  .table-wrap td:last-child {
+    border-bottom: 0;
+  }
+
+  .table-wrap td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-weight: 800;
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  .table-wrap .td-empty {
+    display: block;
+    text-align: center;
+    padding: 28px 12px;
+  }
+
+  .table-wrap .td-empty::before {
+    display: none;
+  }
+
+  .table-wrap td[data-label="Lawan"] {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .table-wrap td[data-label="Lawan"]::before {
+    margin-bottom: 6px;
+  }
+
+  .opp {
+    justify-content: flex-start;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 420px) {
+  .main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .header {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .header-logo {
+    display: none;
+  }
+
+  .welcome {
+    font-size: 17px;
+  }
+
+  .welcome-sub {
+    max-width: 48vw;
+  }
+
+  .bell {
+    display: none;
+  }
+
+  .hello-card {
+    padding: 18px;
+  }
+
+  .hello-name {
+    font-size: 20px;
+  }
+
+  .date-block {
+    width: 50px;
+    height: 50px;
+  }
+
+  .schedule li {
+    flex-direction: column;
+  }
+
+  .session-code-pill {
+    width: 100%;
+    text-align: center;
+  }
+}

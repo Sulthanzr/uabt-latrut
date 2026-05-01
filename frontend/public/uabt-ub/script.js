@@ -60,9 +60,44 @@ if (!AUTH_TOKEN || !currentPlayer || currentPlayer?.role === 'admin') {
 const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
+
+function setMobileSidebar(open) {
+  if (!app) return;
+
+  app.classList.toggle('expanded', open);
+  document.body.classList.toggle('sidebar-open', open);
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+}
+
+toggleBtn?.setAttribute('aria-expanded', 'false');
+
 toggleBtn?.addEventListener('click', () => {
-  if (isMobile()) app.classList.toggle('expanded');
-  else app.classList.toggle('collapsed');
+  if (isMobile()) {
+    setMobileSidebar(!app.classList.contains('expanded'));
+  } else {
+    app.classList.toggle('collapsed');
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (!isMobile()) return;
+  if (!app?.classList.contains('expanded')) return;
+
+  const clickedSidebar = event.target.closest('#sidebar');
+  const clickedToggle = event.target.closest('#toggleSidebar');
+
+  if (!clickedSidebar && !clickedToggle) {
+    setMobileSidebar(false);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (!isMobile()) {
+    setMobileSidebar(false);
+  }
 });
 
 function formatDate(date) {
@@ -524,10 +559,19 @@ function renderMatchHistory() {
     const result = m.status === 'completed' ? (m.winner || 'selesai') : 'playing';
 
     return `<tr data-idx="${i}">
-      <td><div class="opp"><div class="opp-avatar">${m.gameType}</div>${(oppTeam || []).map((p) => p.nama).join(' / ') || '-'}</div></td>
-      <td>${formatDate(m.startedAt)}</td>
-      <td><strong>${m.score || '-'}</strong></td>
-      <td><span class="result-pill ${result === 'playing' ? 'win' : 'loss'}">${result === 'playing' ? 'Bermain' : result}</span></td>
+      <td data-label="Lawan">
+        <div class="opp">
+          <div class="opp-avatar">${m.gameType}</div>
+          ${(oppTeam || []).map((p) => p.nama).join(' / ') || '-'}
+        </div>
+      </td>
+      <td data-label="Tanggal">${formatDate(m.startedAt)}</td>
+      <td data-label="Skor"><strong>${m.score || '-'}</strong></td>
+      <td data-label="Hasil">
+        <span class="result-pill ${result === 'playing' ? 'win' : 'loss'}">
+          ${result === 'playing' ? 'Bermain' : result}
+        </span>
+      </td>
     </tr>`;
   }).join('');
 
@@ -1012,7 +1056,7 @@ function goToPage(name) {
     renderAccountSecurityForm();
   }
 
-  if (isMobile()) app.classList.remove('expanded');
+  if (isMobile()) setMobileSidebar(false);
 }
 
 document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', (e) => {
@@ -1064,6 +1108,10 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeMatchNotificationModal();
+
+    if (isMobile()) {
+      setMobileSidebar(false);
+    }
   }
 });
 
