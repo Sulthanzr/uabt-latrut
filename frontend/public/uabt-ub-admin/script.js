@@ -130,9 +130,50 @@ renderLoggedInAdmin();
 const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
+
+function setMobileSidebar(open) {
+  if (!app) return;
+
+  app.classList.toggle('expanded', open);
+  document.body.classList.toggle('sidebar-open', open);
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+}
+
+toggleBtn?.setAttribute('aria-expanded', 'false');
+
 toggleBtn?.addEventListener('click', () => {
-  if (isMobile()) app.classList.toggle('expanded');
-  else app.classList.toggle('collapsed');
+  if (isMobile()) {
+    setMobileSidebar(!app.classList.contains('expanded'));
+  } else {
+    app.classList.toggle('collapsed');
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (!isMobile()) return;
+  if (!app?.classList.contains('expanded')) return;
+
+  const clickedSidebar = event.target.closest('#sidebar');
+  const clickedToggle = event.target.closest('#toggleSidebar');
+
+  if (!clickedSidebar && !clickedToggle) {
+    setMobileSidebar(false);
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && isMobile()) {
+    setMobileSidebar(false);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (!isMobile()) {
+    setMobileSidebar(false);
+  }
 });
 
 const pageMeta = {
@@ -152,7 +193,7 @@ function goToPage(name) {
     document.getElementById('pageTitle').textContent = pageMeta[name].title;
     document.getElementById('pageSub').textContent = pageMeta[name].sub;
   }
-  if (isMobile()) app.classList.remove('expanded');
+  if (isMobile()) setMobileSidebar(false);
 }
 document.querySelectorAll('[data-page]').forEach((item) => item.addEventListener('click', (e) => {
   e.preventDefault();
@@ -349,12 +390,12 @@ function renderSessionManagement() {
   const rows = sessions.length ? sessions : (s ? [s] : []);
   list.innerHTML = rows.length ? `<table><thead><tr><th>Sesi</th><th>Jam</th><th>Tempat</th><th>PJ</th><th>Kode</th><th>Status</th></tr></thead><tbody>${rows.map((x) => `
     <tr data-session-id="${x._id}">
-      <td><strong>${x.title}</strong></td>
-      <td>${dateTimeText(x.startAt)}</td>
-      <td>${x.location} · ${x.court}</td>
-      <td>${x.pj || '-'}</td>
-      <td><strong>${x.code}</strong></td>
-      <td>
+      <td data-label="Sesi"><strong>${x.title}</strong></td>
+      <td data-label="Jam">${dateTimeText(x.startAt)}</td>
+      <td data-label="Tempat">${x.location} · ${x.court}</td>
+      <td data-label="PJ">${x.pj || '-'}</td>
+      <td data-label="Kode"><strong>${x.code}</strong></td>
+      <td data-label="Status">
         <div class="session-actions">
           ${
             x.isActive
@@ -373,11 +414,35 @@ function renderSessionManagement() {
         </div>
       </td>
     </tr>`).join('')}</tbody></table>` : '<p class="muted small">Belum ada sesi tersimpan.</p>';
-}
+    }
 
   if (joined) {
     const players = snapshot?.players || [];
-    joined.innerHTML = players.length ? `<table><thead><tr><th>Nama</th><th>Gender</th><th>Grade</th><th>Status</th><th>Join</th></tr></thead><tbody>${players.map((p) => `<tr><td>${p.nama}</td><td>${p.gender === 'P' ? 'Pria' : 'Wanita'}</td><td>${p.grade}</td><td>${p.status}</td><td>${timeText(p.waktu_hadir)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">Belum ada player yang join sesi ini.</p>';
+
+    joined.innerHTML = players.length ? `
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Gender</th>
+            <th>Grade</th>
+            <th>Status</th>
+            <th>Join</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${players.map((p) => `
+            <tr>
+              <td data-label="Nama">${p.nama}</td>
+              <td data-label="Gender">${p.gender === 'P' ? 'Pria' : 'Wanita'}</td>
+              <td data-label="Grade">${p.grade}</td>
+              <td data-label="Status">${p.status}</td>
+              <td data-label="Join">${timeText(p.waktu_hadir)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<p class="muted small">Belum ada player yang join sesi ini.</p>';
   }
 }
 
