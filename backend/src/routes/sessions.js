@@ -5,7 +5,13 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { requireAuth, requireAdmin } from '../utils/auth.js';
 import { getSessionSnapshot } from '../services/snapshot.js';
 import { emitGlobal, emitToSession } from '../socket/realtime.js';
-import { activateSession, closeSession, createSessionWithRetry, findSessions } from '../services/repository.js';
+import {
+  activateSession,
+  closeSession,
+  createSessionWithRetry,
+  deleteSessionTransactional,
+  findSessions,
+} from '../services/repository.js';
 
 export const sessionRouter = express.Router();
 
@@ -120,6 +126,27 @@ sessionRouter.patch('/:id/close', requireAuth, requireAdmin, asyncHandler(async 
   emitToSession(session._id, 'snapshot:update', snapshot);
 
   res.json({ data: session });
+}));
+
+sessionRouter.delete('/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const deleted = await deleteSessionTransactional(req.params.id);
+
+  if (!deleted) {
+    return res.status(404).json({ message: 'Sesi tidak ditemukan.' });
+  }
+
+  const snapshot = await getSessionSnapshot();
+
+  emitGlobal('session:deleted', deleted.session);
+  emitGlobal('snapshot:update', snapshot);
+
+  emitToSession(deleted.session._id, 'session:deleted', deleted.session);
+  emitToSession(deleted.session._id, 'snapshot:update', snapshot);
+
+  res.json({
+    data: deleted,
+    message: 'Sesi berhasil dihapus.',
+  });
 }));
 
 sessionRouter.get('/:id/snapshot', asyncHandler(async (req, res) => {

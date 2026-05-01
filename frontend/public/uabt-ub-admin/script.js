@@ -277,11 +277,22 @@ function renderSessionManagement() {
       <td>${x.pj || '-'}</td>
       <td><strong>${x.code}</strong></td>
       <td>
-        ${
-          x.isActive
-            ? '<button class="btn-danger sm" data-close-session="' + x._id + '">Tutup Sesi</button>'
-            : '<button class="btn-primary sm" data-activate-session="' + x._id + '">Aktifkan</button>'
-        }
+        <div class="session-actions">
+          ${
+            x.isActive
+              ? '<button class="btn-danger sm" data-close-session="' + x._id + '">Tutup Sesi</button>'
+              : '<button class="btn-primary sm" data-activate-session="' + x._id + '">Aktifkan</button>'
+          }
+
+          <button
+            class="btn-danger sm"
+            data-delete-session="${x._id}"
+            data-session-code="${x.code || ''}"
+            data-session-title="${x.title || ''}"
+          >
+            Hapus Sesi
+          </button>
+        </div>
       </td>
     </tr>`).join('')}</tbody></table>` : '<p class="muted small">Belum ada sesi tersimpan.</p>';
 }
@@ -766,6 +777,7 @@ document.getElementById('saveSessionBtn')?.addEventListener('click', (event) => 
 document.addEventListener('click', async (e) => {
   const closeSessionBtn = e.target.closest('[data-close-session]');
   const activate = e.target.closest('[data-activate-session]');
+  const deleteSessionBtn = e.target.closest('[data-delete-session]');
   const saveResult = e.target.closest('[data-save-result]');
   const complete = e.target.closest('[data-complete]');
   const row = e.target.closest('[data-session-id]');
@@ -806,6 +818,55 @@ document.addEventListener('click', async (e) => {
 
     return;
   }
+
+    if (deleteSessionBtn) {
+      e.stopPropagation();
+
+      const sessionId = deleteSessionBtn.dataset.deleteSession;
+      const sessionCode = deleteSessionBtn.dataset.sessionCode || '-';
+      const sessionTitle = deleteSessionBtn.dataset.sessionTitle || 'sesi ini';
+
+      const ok = confirm(
+        `Hapus ${sessionTitle} (${sessionCode})?\n\n` +
+        'Tindakan ini akan menghapus sesi dan seluruh match pada sesi tersebut. ' +
+        'Player yang join sesi ini akan di-reset keluar dari sesi.\n\n' +
+        'Tindakan ini tidak bisa dibatalkan.'
+      );
+
+      if (!ok) return;
+
+      runActionOnce(
+        `delete-session-${sessionId}`,
+        deleteSessionBtn,
+        async () => {
+          try {
+            const result = await api(`/api/sessions/${sessionId}`, {
+              method: 'DELETE',
+            });
+
+            const deletedSession = result.session || {};
+            const code = deletedSession.code || sessionCode;
+
+            toast(`Sesi ${code} berhasil dihapus`);
+            addLog(
+              `Sesi ${code} dihapus. ${result.deletedMatches || 0} match dihapus, ${result.resetPlayers || 0} player di-reset.`,
+              'fa-trash'
+            );
+
+            await loadSnapshot();
+          } catch (err) {
+            toast(err.message, 'error');
+          }
+        },
+        {
+          busyText: 'Menghapus...',
+          cooldown: 1800,
+          showDuplicateToast: true,
+        }
+      );
+
+      return;
+    }
 
   if (saveResult) {
     e.stopPropagation();

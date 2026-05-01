@@ -345,6 +345,64 @@ export async function closeSession(id) {
   return toSession(rows[0]);
 }
 
+export async function deleteSessionTransactional(sessionId) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const sessionResult = await client.query(
+      'SELECT * FROM sessions WHERE id = $1 FOR UPDATE',
+      [sessionId]
+    );
+
+    const sessionRow = sessionResult.rows[0];
+
+    if (!sessionRow) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const resetPlayers = await client.query(
+      `UPDATE players
+       SET session_id = NULL,
+           current_match_id = NULL,
+           status = 'registered',
+           jumlah_main = 0,
+           updated_at = now()
+       WHERE session_id = $1
+       RETURNING id`,
+      [sessionId]
+    );
+
+    const deletedMatches = await client.query(
+      `DELETE FROM matches
+       WHERE session_id = $1
+       RETURNING id`,
+      [sessionId]
+    );
+
+    await client.query(
+      `DELETE FROM sessions
+       WHERE id = $1`,
+      [sessionId]
+    );
+
+    await client.query('COMMIT');
+
+    return {
+      session: toSession(sessionRow),
+      resetPlayers: resetPlayers.rowCount,
+      deletedMatches: deletedMatches.rowCount,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function countMatches(sessionId) {
   const { rows } = await query('SELECT COUNT(*)::int AS count FROM matches WHERE session_id = $1', [sessionId]);
   return rows[0]?.count ?? 0;
