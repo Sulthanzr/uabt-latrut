@@ -63,6 +63,36 @@ function validateNewPassword(password) {
   return null;
 }
 
+const passwordOtpLocks = new Map();
+const PASSWORD_OTP_LOCK_MS = 60 * 1000;
+
+function getOtpLockKey(playerId) {
+  return String(playerId || '');
+}
+
+function isPasswordOtpLocked(playerId) {
+  const key = getOtpLockKey(playerId);
+  const lockedAt = passwordOtpLocks.get(key);
+
+  if (!lockedAt) return false;
+
+  if (Date.now() - lockedAt > PASSWORD_OTP_LOCK_MS) {
+    passwordOtpLocks.delete(key);
+    return false;
+  }
+
+  return true;
+}
+
+function rememberPasswordOtpRequest(playerId) {
+  const key = getOtpLockKey(playerId);
+  passwordOtpLocks.set(key, Date.now());
+
+  setTimeout(() => {
+    passwordOtpLocks.delete(key);
+  }, PASSWORD_OTP_LOCK_MS);
+}
+
 playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
   const { sessionCode } = joinSchema.parse(req.body || {});
 
@@ -71,6 +101,14 @@ playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
   if (!playerId) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
+
+  if (isPasswordOtpLocked(playerId)) {
+    return res.status(429).json({
+      message: 'OTP baru saja dikirim. Tunggu sekitar 1 menit sebelum meminta OTP lagi.',
+    });
+  }
+
+  rememberPasswordOtpRequest(playerId);
 
   const session = await findActiveSessionByCode(sessionCode);
 

@@ -6,6 +6,53 @@ const AUTH_TOKEN = localStorage.getItem('uabt-auth-token');
 let snapshot = null;
 let currentPlayer = JSON.parse(localStorage.getItem('uabt-current-player') || localStorage.getItem('uabt-auth-player') || 'null');
 let cropper = null;
+
+const ACTION_LOCKS = new Map();
+
+function setButtonBusy(button, isBusy, busyText = 'Memproses...') {
+  if (!button) return;
+
+  if (isBusy) {
+    if (!button.dataset.originalHtml) {
+      button.dataset.originalHtml = button.innerHTML;
+    }
+
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${busyText}`;
+    return;
+  }
+
+  button.disabled = false;
+  button.classList.remove('is-loading');
+
+  if (button.dataset.originalHtml) {
+    button.innerHTML = button.dataset.originalHtml;
+    delete button.dataset.originalHtml;
+  }
+}
+
+async function runActionOnce(actionKey, button, handler, options = {}) {
+  const {
+    busyText = 'Memproses...',
+    cooldown = 1200,
+  } = options;
+
+  if (ACTION_LOCKS.has(actionKey)) return null;
+
+  ACTION_LOCKS.set(actionKey, true);
+  setButtonBusy(button, true, busyText);
+
+  try {
+    return await handler();
+  } finally {
+    setTimeout(() => {
+      ACTION_LOCKS.delete(actionKey);
+      setButtonBusy(button, false);
+    }, cooldown);
+  }
+}
+
 if (!AUTH_TOKEN || !currentPlayer || currentPlayer?.role === 'admin') {
   window.location.href = '../uabt-ub-auth/login.html';
 }
@@ -576,35 +623,54 @@ async function loadSnapshot() {
 const joinBtn = document.getElementById('joinBtn');
 const sessionCode = document.getElementById('sessionCode');
 const joinStatus = document.getElementById('joinStatus');
-joinBtn?.addEventListener('click', async () => {
-  const code = (sessionCode.value || '').trim().toUpperCase();
-  if (!currentPlayer?._id) {
-    joinStatus.innerHTML = '✗ Kamu belum login. <a href="../uabt-ub-auth/login.html">Login dulu</a>, lalu masukkan kode sesi.';
-    joinStatus.className = 'join-status error';
-    return;
-  }
-  if (!code) {
-    joinStatus.textContent = 'Masukkan kode sesi dari admin.';
-    joinStatus.className = 'join-status error';
-    return;
-  }
-  try {
-    const data = await api('/api/players/join', {
-      method: 'POST',
-      body: JSON.stringify({ sessionCode: code }),
-    });
-    currentPlayer = data;
-    localStorage.setItem('uabt-current-player', JSON.stringify(currentPlayer));
-    localStorage.setItem('uabt-auth-player', JSON.stringify(currentPlayer));
-    renderProfilePhoto(currentPlayer);
-    joinStatus.textContent = `✓ Berhasil masuk sesi sebagai ${currentPlayer.nama} (${currentPlayer.grade}/${currentPlayer.gender}). Nama kamu sudah muncul realtime di dashboard admin.`;
-    joinStatus.className = 'join-status success';
-    await loadSnapshot();
-  } catch (err) {
-    joinStatus.textContent = `✗ ${err.message}`;
-    joinStatus.className = 'join-status error';
-  }
+
+joinBtn?.addEventListener('click', (event) => {
+  runActionOnce(
+    'join-session',
+    event.currentTarget,
+    async () => {
+      const code = (sessionCode.value || '').trim().toUpperCase();
+
+      if (!currentPlayer?._id) {
+        joinStatus.innerHTML = '✗ Kamu belum login. <a href="../uabt-ub-auth/login.html">Login dulu</a>, lalu masukkan kode sesi.';
+        joinStatus.className = 'join-status error';
+        return;
+      }
+
+      if (!code) {
+        joinStatus.textContent = 'Masukkan kode sesi dari admin.';
+        joinStatus.className = 'join-status error';
+        return;
+      }
+
+      try {
+        const data = await api('/api/players/join', {
+          method: 'POST',
+          body: JSON.stringify({ sessionCode: code }),
+        });
+
+        currentPlayer = data;
+        localStorage.setItem('uabt-current-player', JSON.stringify(currentPlayer));
+        localStorage.setItem('uabt-auth-player', JSON.stringify(currentPlayer));
+
+        renderProfilePhoto(currentPlayer);
+
+        joinStatus.textContent = `✓ Berhasil masuk sesi sebagai ${currentPlayer.nama} (${currentPlayer.grade}/${currentPlayer.gender}). Nama kamu sudah muncul realtime di dashboard admin.`;
+        joinStatus.className = 'join-status success';
+
+        await loadSnapshot();
+      } catch (err) {
+        joinStatus.textContent = `✗ ${err.message}`;
+        joinStatus.className = 'join-status error';
+      }
+    },
+    {
+      busyText: 'Bergabung...',
+      cooldown: 1500,
+    }
+  );
 });
+
 sessionCode?.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinBtn.click(); });
 
 function openCropperModal(file) {
@@ -764,22 +830,42 @@ document.getElementById('profilePhotoInput')?.addEventListener('change', (e) => 
 document.getElementById('closeCropperBtn')?.addEventListener('click', closeCropperModal);
 document.getElementById('cancelCropBtn')?.addEventListener('click', closeCropperModal);
 
-document.getElementById('saveCropBtn')?.addEventListener('click', async () => {
-  try {
-    await uploadCroppedProfilePhoto();
-  } catch (err) {
-    console.error(err);
-    alert(err.message || 'Gagal upload foto profil.');
-  }
+document.getElementById('saveCropBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'upload-profile-photo',
+    event.currentTarget,
+    async () => {
+      try {
+        await uploadCroppedProfilePhoto();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Gagal upload foto profil.');
+      }
+    },
+    {
+      busyText: 'Menyimpan...',
+      cooldown: 1800,
+    }
+  );
 });
 
-document.getElementById('deleteProfilePhotoBtn')?.addEventListener('click', async () => {
-  try {
-    await deleteProfilePhoto();
-  } catch (err) {
-    console.error(err);
-    alert(err.message || 'Gagal hapus foto profil.');
-  }
+document.getElementById('deleteProfilePhotoBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'delete-profile-photo',
+    event.currentTarget,
+    async () => {
+      try {
+        await deleteProfilePhoto();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Gagal hapus foto profil.');
+      }
+    },
+    {
+      busyText: 'Menghapus...',
+      cooldown: 1500,
+    }
+  );
 });
 
 /* ===== RESET PASSWORD OTP ===== */
@@ -822,84 +908,80 @@ document.getElementById('openResetPasswordBtn')?.addEventListener('click', () =>
   }
 });
 
-document.getElementById('sendPasswordOtpBtn')?.addEventListener('click', async () => {
-  const btn = document.getElementById('sendPasswordOtpBtn');
+document.getElementById('sendPasswordOtpBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'send-password-otp',
+    event.currentTarget,
+    async () => {
+      try {
+        setResetPasswordStatus('Mengirim OTP ke email akunmu...', '');
 
-  try {
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Mengirim...';
+        await api('/api/players/me/password-otp', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+
+        setResetPasswordStatus('✓ OTP sudah dikirim ke email akunmu.', 'success');
+      } catch (err) {
+        setResetPasswordStatus(`✗ ${err.message}`, 'error');
+      }
+    },
+    {
+      busyText: 'Mengirim...',
+      cooldown: 5000,
     }
-
-    setResetPasswordStatus('Mengirim OTP ke email akunmu...', '');
-
-    await api('/api/players/me/password-otp', {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-
-    setResetPasswordStatus('✓ OTP sudah dikirim ke email akunmu.', 'success');
-  } catch (err) {
-    setResetPasswordStatus(`✗ ${err.message}`, 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Kirim OTP';
-    }
-  }
+  );
 });
 
-document.getElementById('updatePasswordBtn')?.addEventListener('click', async () => {
-  const oldPassword = document.getElementById('oldPasswordInput')?.value || '';
-  const newPassword = document.getElementById('newPasswordInput')?.value || '';
-  const confirmPassword = document.getElementById('confirmNewPasswordInput')?.value || '';
-  const otp = document.getElementById('passwordOtpInput')?.value || '';
+document.getElementById('updatePasswordBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'update-password',
+    event.currentTarget,
+    async () => {
+      const oldPassword = document.getElementById('oldPasswordInput')?.value || '';
+      const newPassword = document.getElementById('newPasswordInput')?.value || '';
+      const confirmPassword = document.getElementById('confirmNewPasswordInput')?.value || '';
+      const otp = document.getElementById('passwordOtpInput')?.value || '';
 
-  if (!newPassword || !confirmPassword || !otp) {
-    setResetPasswordStatus('✗ Password baru, konfirmasi password, dan OTP wajib diisi.', 'error');
-    return;
-  }
+      if (!newPassword || !confirmPassword || !otp) {
+        setResetPasswordStatus('✗ Password baru, konfirmasi password, dan OTP wajib diisi.', 'error');
+        return;
+      }
 
-  if (newPassword !== confirmPassword) {
-    setResetPasswordStatus('✗ Konfirmasi password baru tidak cocok.', 'error');
-    return;
-  }
+      if (newPassword !== confirmPassword) {
+        setResetPasswordStatus('✗ Konfirmasi password baru tidak cocok.', 'error');
+        return;
+      }
 
-  if (newPassword.length < 8) {
-    setResetPasswordStatus('✗ Password baru minimal 8 karakter.', 'error');
-    return;
-  }
+      if (newPassword.length < 8) {
+        setResetPasswordStatus('✗ Password baru minimal 8 karakter.', 'error');
+        return;
+      }
 
-  const btn = document.getElementById('updatePasswordBtn');
+      try {
+        setResetPasswordStatus('Memproses update password...', '');
 
-  try {
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+        await api('/api/players/me/password', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            oldPassword,
+            newPassword,
+            confirmPassword,
+            otp,
+          }),
+        });
+
+        setResetPasswordStatus('✓ Password berhasil diubah. Gunakan password baru saat login berikutnya.', 'success');
+        clearResetPasswordInputs();
+      } catch (err) {
+        setResetPasswordStatus(`✗ ${err.message}`, 'error');
+      }
+    },
+    {
+      busyText: 'Memproses...',
+      cooldown: 1800,
     }
-
-    setResetPasswordStatus('Memproses update password...', '');
-
-    await api('/api/players/me/password', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        oldPassword,
-        newPassword,
-        confirmPassword,
-        otp,
-      }),
-    });
-
-    setResetPasswordStatus('✓ Password berhasil diubah. Gunakan password baru saat login berikutnya.', 'success');
-    clearResetPasswordInputs();
-  } catch (err) {
-    setResetPasswordStatus(`✗ ${err.message}`, 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update Password';
-    }
-  }
+  );
 });
 
 // Navigation

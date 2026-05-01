@@ -938,3 +938,24 @@ body.modal-open {
     justify-content: center;
   }
 }
+
+button:disabled,
+.btn-primary:disabled,
+.btn-danger:disabled,
+.btn-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button.is-loading,
+.btn-primary.is-loading,
+.btn-danger.is-loading,
+.btn-secondary.is-loading {
+  pointer-events: none;
+}
+
+button.is-loading i.fa-spinner {
+  margin-right: 2px;
+}
