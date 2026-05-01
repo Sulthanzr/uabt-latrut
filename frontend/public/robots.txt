@@ -1,5 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /uabt-ub-admin/
-
-Sitemap: https://uabt-latrut.pages.dev/sitemap.xml
