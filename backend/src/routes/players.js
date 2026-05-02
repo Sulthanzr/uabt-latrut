@@ -11,6 +11,7 @@ import { emitToSession } from '../socket/realtime.js';
 import {
   approveQr,
   deletePlayer,
+  findActiveSession,
   findActiveSessionByCode,
   findPlayerById,
   findPlayers,
@@ -41,6 +42,8 @@ const updateProfileSchema = z.object({
   nama: z.string().min(2, 'Nama minimal 2 karakter.'),
   phone: z.string().max(30).optional().default(''),
   bio: z.string().max(300).optional().default(''),
+  gender: z.enum(['P', 'W']).optional(),
+  grade: z.enum(['A', 'B', 'C']).optional(),
 });
 
 function generateOtp() {
@@ -102,14 +105,6 @@ playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  if (isPasswordOtpLocked(playerId)) {
-    return res.status(429).json({
-      message: 'OTP baru saja dikirim. Tunggu sekitar 1 menit sebelum meminta OTP lagi.',
-    });
-  }
-
-  rememberPasswordOtpRequest(playerId);
-
   const session = await findActiveSessionByCode(sessionCode);
 
   if (!session) {
@@ -144,6 +139,55 @@ playerRouter.post('/join', requireAuth, asyncHandler(async (req, res) => {
   res.json({
     message: 'Berhasil bergabung ke sesi.',
     data: safePlayer,
+    session,
+    snapshot,
+  });
+}));
+
+playerRouter.post('/me/join-active', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const playerId = req.user?._id || req.user?.id;
+
+  if (!playerId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const session = await findActiveSession();
+
+  if (!session) {
+    return res.status(404).json({
+      message: 'Belum ada sesi aktif.',
+    });
+  }
+
+  const currentPlayer = await findPlayerById(playerId);
+
+  if (!currentPlayer) {
+    return res.status(404).json({
+      message: 'Akun admin tidak ditemukan.',
+    });
+  }
+
+  if (!currentPlayer.gender || !currentPlayer.grade) {
+    return res.status(400).json({
+      message: 'Lengkapi gender dan grade admin terlebih dahulu sebelum ikut sesi.',
+    });
+  }
+
+  if (currentPlayer.status === 'playing' && currentPlayer.session !== session._id) {
+    return res.status(409).json({
+      message: 'Kamu masih sedang bermain di sesi lain.',
+    });
+  }
+
+  const player = await joinPlayerToSession(playerId, session._id);
+  const snapshot = await getSessionSnapshot(session._id);
+
+  emitToSession(session._id, 'player:joined', publicPlayer(player));
+  emitToSession(session._id, 'snapshot:update', snapshot);
+
+  res.json({
+    message: 'Berhasil bergabung ke sesi aktif.',
+    data: publicPlayer(player),
     session,
     snapshot,
   });
@@ -271,46 +315,6 @@ playerRouter.get('/me/stats', requireAuth, asyncHandler(async (req, res) => {
   });
 }));
 
-
-playerRouter.post(
-  '/me/profile-photo',
-  requireAuth,
-  uploadProfilePhoto.single('photo'),
-  asyncHandler(async (req, res) => {
-    const playerId = req.user?._id || req.user?.id;
-
-    if (!playerId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'File foto belum dipilih.' });
-    }
-
-    const profileDir = path.join(backendRoot, 'uploads', 'profile');
-    fs.mkdirSync(profileDir, { recursive: true });
-
-    const filename = `${playerId}-${Date.now()}.jpg`;
-    const filepath = path.join(profileDir, filename);
-
-    await sharp(req.file.buffer)
-      .resize(512, 512, {
-        fit: 'cover',
-        position: 'center',
-      })
-      .jpeg({ quality: 85 })
-      .toFile(filepath);
-
-    const photoUrl = `/uploads/profile/${filename}`;
-    const player = await updatePlayerProfilePhoto(playerId, photoUrl);
-
-    res.json({
-      message: 'Foto profil berhasil diupload.',
-      data: publicPlayer(player),
-    });
-  })
-);
-
 playerRouter.delete('/me/profile-photo', requireAuth, asyncHandler(async (req, res) => {
   const playerId = req.user?._id || req.user?.id;
 
@@ -346,16 +350,42 @@ playerRouter.patch('/me/profile', requireAuth, asyncHandler(async (req, res) => 
   }
 
   const payload = updateProfileSchema.parse(req.body || {});
+  const currentPlayer = await findPlayerById(playerId);
 
-  await query(
-    `UPDATE players
-     SET nama = $2,
-         phone = $3,
-         bio = $4,
-         updated_at = now()
-     WHERE id = $1`,
-    [playerId, payload.nama, payload.phone || null, payload.bio || null]
-  );
+  if (!currentPlayer) {
+    return res.status(404).json({ message: 'Akun tidak ditemukan.' });
+  }
+
+  if (currentPlayer.role === 'admin') {
+    await query(
+      `UPDATE players
+       SET nama = $2,
+           phone = $3,
+           bio = $4,
+           gender = COALESCE($5, gender),
+           grade = COALESCE($6, grade),
+           updated_at = now()
+       WHERE id = $1`,
+      [
+        playerId,
+        payload.nama,
+        payload.phone || null,
+        payload.bio || null,
+        payload.gender || null,
+        payload.grade || null,
+      ]
+    );
+  } else {
+    await query(
+      `UPDATE players
+       SET nama = $2,
+           phone = $3,
+           bio = $4,
+           updated_at = now()
+       WHERE id = $1`,
+      [playerId, payload.nama, payload.phone || null, payload.bio || null]
+    );
+  }
 
   const player = await findPlayerById(playerId);
 
@@ -372,6 +402,13 @@ playerRouter.post('/me/password-otp', requireAuth, asyncHandler(async (req, res)
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
+  if (isPasswordOtpLocked(playerId)) {
+    return res.status(429).json({
+      message: 'OTP baru saja dikirim. Tunggu sekitar 1 menit sebelum meminta OTP lagi.',
+    });
+  }
+
+rememberPasswordOtpRequest(playerId);
   const player = await findPlayerById(playerId);
 
   if (!player?.email) {

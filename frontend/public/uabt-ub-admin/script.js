@@ -11,6 +11,8 @@ if (!AUTH_TOKEN || CURRENT_USER?.role !== 'admin') {
 let snapshot = null;
 let sessions = [];
 
+let adminProfile = CURRENT_USER ? { ...CURRENT_USER } : null;
+
 const ACTION_LOCKS = new Map();
 
 function setButtonBusy(button, isBusy, busyText = 'Memproses...') {
@@ -75,24 +77,24 @@ function formatUsernameAsPj(username = '') {
 
 function getLoggedInAdminDisplayName() {
   return (
-    CURRENT_USER?.nama ||
-    CURRENT_USER?.name ||
-    CURRENT_USER?.username ||
+    adminProfile?.nama ||
+    adminProfile?.name ||
+    adminProfile?.username ||
     'Admin'
   );
 }
 
 function getLoggedInPjName() {
-  const pjName = formatUsernameAsPj(CURRENT_USER?.username);
+  const pjName = formatUsernameAsPj(adminProfile?.username);
 
   return VALID_PJ_NAMES.includes(pjName) ? pjName : '';
 }
 
 function getLoggedInAdminName() {
-  return normalizeAdminName(
-    CURRENT_USER?.nama ||
-    CURRENT_USER?.name ||
-    CURRENT_USER?.username ||
+  return (
+    adminProfile?.nama ||
+    adminProfile?.name ||
+    adminProfile?.username ||
     'Admin'
   );
 }
@@ -116,7 +118,17 @@ function renderLoggedInAdmin() {
   const roleLabel = document.getElementById('adminRoleLabel');
   const sessionPj = document.getElementById('sessionPj');
 
-  if (avatar) avatar.textContent = getInitials(adminDisplayName);
+  if (avatar) {
+    const photoUrl = adminProfile?.profilePhotoUrl || adminProfile?.profile_photo_url || adminProfile?.avatarUrl;
+
+    if (photoUrl) {
+      avatar.innerHTML = `<img src="${photoUrl}" alt="${adminDisplayName}" />`;
+      avatar.classList.add('has-photo');
+    } else {
+      avatar.textContent = getInitials(adminDisplayName);
+      avatar.classList.remove('has-photo');
+    }
+  }
   if (displayName) displayName.textContent = adminDisplayName;
   if (roleLabel) roleLabel.textContent = 'Administrator';
 
@@ -178,6 +190,7 @@ window.addEventListener('resize', () => {
 
 const pageMeta = {
   dashboard: { title: 'Dashboard', sub: 'Ringkasan sesi latihan' },
+  profile: { title: 'Profil Admin', sub: 'Kelola profil admin dan ikut sesi aktif' },
   scan: { title: 'Tambahkan Sesi', sub: 'Buat sesi aktif, tampilkan kode, dan monitor player join realtime' },
   antrean: { title: 'Antrean', sub: 'Pemain siap dimatchkan' },
   generate: { title: 'Generate Match', sub: 'Matchmaking otomatis berbasis count + level' },
@@ -292,7 +305,12 @@ document.getElementById('clearLog')?.addEventListener('click', () => {
 });
 
 async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const isFormData = options.body instanceof FormData;
+
+  const headers = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(options.headers || {}),
+  };
 
   if (AUTH_TOKEN) headers.Authorization = `Bearer ${AUTH_TOKEN}`;
 
@@ -461,9 +479,32 @@ function renderQueue() {
     wrap.innerHTML = '<div class="empty"><i class="fa-solid fa-users"></i><p>Belum ada pemain di antrean</p></div>';
     return;
   }
-  wrap.innerHTML = `<table><thead><tr><th>#</th><th>Nama</th><th>Gender</th><th>Grade</th><th>Jumlah Main</th><th>Waktu Hadir</th></tr></thead><tbody>
-    ${snapshot.queue.map((p, i) => `<tr><td>${i + 1}</td><td>${p.nama}</td><td>${p.gender === 'P' ? 'Pria' : 'Wanita'}</td><td>${p.grade}</td><td>${p.jumlah_main}</td><td>${timeText(p.waktu_hadir)}</td></tr>`).join('')}
-  </tbody></table>`;
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nama</th>
+          <th>Gender</th>
+          <th>Grade</th>
+          <th>Jumlah Main</th>
+          <th>Waktu Hadir</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${snapshot.queue.map((p, i) => `
+          <tr>
+            <td data-label="#">${i + 1}</td>
+            <td data-label="Nama">${p.nama}</td>
+            <td data-label="Gender">${p.gender === 'P' ? 'Pria' : 'Wanita'}</td>
+            <td data-label="Grade">${p.grade}</td>
+            <td data-label="Jumlah Main">${p.jumlah_main}</td>
+            <td data-label="Waktu Hadir">${timeText(p.waktu_hadir)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 function renderGenerate() {
@@ -594,15 +635,15 @@ function renderHistory() {
   tbody.innerHTML = matches.length
     ? matches.map((m) => `
       <tr>
-        <td>#${m.matchNo} · ${m.gameType}</td>
-        <td>${teamText(m.team1)}</td>
-        <td>${m.team1Point} - ${m.team2Point}</td>
-        <td>${teamText(m.team2)}</td>
-        <td>
+        <td data-label="Match">#${m.matchNo} · ${m.gameType}</td>
+        <td data-label="Tim A">${teamText(m.team1)}</td>
+        <td data-label="VS">${m.team1Point} - ${m.team2Point}</td>
+        <td data-label="Tim B">${teamText(m.team2)}</td>
+        <td data-label="Hasil">
           <strong>${m.score || '-'}</strong><br>
           <span class="muted small">${winnerText(m.winner)}</span>
         </td>
-        <td>
+        <td data-label="Edit">
           <input
             class="input-block sm-score"
             data-score-input="${m._id}"
@@ -636,12 +677,213 @@ function renderLeaderboard() {
       card.appendChild(box);
     }
     const players = [...snapshot.players].sort((a, b) => b.jumlah_main - a.jumlah_main || a.nama.localeCompare(b.nama));
-    box.innerHTML = players.length ? `<table><thead><tr><th>Rank</th><th>Nama</th><th>Grade</th><th>Status</th><th>Main</th></tr></thead><tbody>${players.map((p, i) => `<tr><td>#${i + 1}</td><td>${p.nama}</td><td>${p.grade}/${p.gender}</td><td>${p.status}</td><td>${p.jumlah_main}</td></tr>`).join('')}</tbody></table>` : '<div class="empty"><i class="fa-solid fa-trophy"></i><p>Belum ada data</p></div>';
+
+  box.innerHTML = players.length ? `
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Nama</th>
+          <th>Grade</th>
+          <th>Status</th>
+          <th>Main</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${players.map((p, i) => `
+          <tr>
+            <td data-label="Rank">#${i + 1}</td>
+            <td data-label="Nama">${p.nama}</td>
+            <td data-label="Grade">${p.grade}/${p.gender}</td>
+            <td data-label="Status">${p.status}</td>
+            <td data-label="Main">${p.jumlah_main}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  ` : '<div class="empty"><i class="fa-solid fa-trophy"></i><p>Belum ada data</p></div>';
   }
+  
   const bars = document.querySelectorAll('#page-leaderboard .stat-bar strong');
   if (bars[0]) bars[0].textContent = snapshot.stats.totalMatches;
   if (bars[1]) bars[1].textContent = snapshot.stats.totalPlayers;
   if (bars[2]) bars[2].textContent = snapshot.stats.avgPlay;
+}
+
+function saveAdminProfileSession(player) {
+  if (!player) return;
+
+  adminProfile = { ...adminProfile, ...player };
+
+  localStorage.setItem('uabt-auth-player', JSON.stringify(adminProfile));
+  localStorage.setItem('uabt-current-player', JSON.stringify(adminProfile));
+
+  renderLoggedInAdmin();
+  renderAdminProfile();
+}
+
+function getAdminPhotoUrl() {
+  return adminProfile?.profilePhotoUrl ||
+    adminProfile?.profile_photo_url ||
+    adminProfile?.avatarUrl ||
+    '';
+}
+
+function renderAdminProfile() {
+  const page = document.getElementById('page-profile');
+  if (!page || !adminProfile) return;
+
+  const name = adminProfile.nama || adminProfile.name || adminProfile.username || 'Admin';
+  const email = adminProfile.email || '-';
+  const photoUrl = getAdminPhotoUrl();
+
+  const photo = document.getElementById('adminProfilePhoto');
+  const nameText = document.getElementById('adminProfileNameText');
+  const emailText = document.getElementById('adminProfileEmailText');
+
+  if (photo) {
+    if (photoUrl) {
+      photo.innerHTML = `<img src="${photoUrl}" alt="${name}" />`;
+      photo.classList.add('has-photo');
+    } else {
+      photo.textContent = getInitials(name);
+      photo.classList.remove('has-photo');
+    }
+  }
+
+  if (nameText) nameText.textContent = name;
+  if (emailText) emailText.textContent = email;
+
+  const namaInput = document.getElementById('adminProfileNama');
+  const usernameInput = document.getElementById('adminProfileUsername');
+  const emailInput = document.getElementById('adminProfileEmail');
+  const phoneInput = document.getElementById('adminProfilePhone');
+  const genderInput = document.getElementById('adminProfileGender');
+  const gradeInput = document.getElementById('adminProfileGrade');
+  const bioInput = document.getElementById('adminProfileBio');
+
+  if (namaInput && document.activeElement !== namaInput) namaInput.value = adminProfile.nama || adminProfile.name || '';
+  if (usernameInput) usernameInput.value = adminProfile.username || '';
+  if (emailInput) emailInput.value = adminProfile.email || '';
+  if (phoneInput && document.activeElement !== phoneInput) phoneInput.value = adminProfile.phone || '';
+  if (genderInput && document.activeElement !== genderInput) genderInput.value = adminProfile.gender || '';
+  if (gradeInput && document.activeElement !== gradeInput) gradeInput.value = adminProfile.grade || '';
+  if (bioInput && document.activeElement !== bioInput) bioInput.value = adminProfile.bio || '';
+
+  renderAdminJoinStatus();
+}
+
+function renderAdminJoinStatus() {
+  const box = document.getElementById('adminJoinBox');
+  const button = document.getElementById('adminJoinActiveBtn');
+
+  if (!box || !button) return;
+
+  const session = snapshot?.session;
+  const player = (snapshot?.players || []).find((p) => String(p._id || p.id) === String(adminProfile?._id || adminProfile?.id));
+
+  if (!session) {
+    box.innerHTML = '<strong>Belum ada sesi aktif</strong><p class="muted">Buat atau aktifkan sesi dulu sebelum join.</p>';
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Belum Ada Sesi';
+    return;
+  }
+
+  if (!adminProfile?.gender || !adminProfile?.grade) {
+    box.innerHTML = '<strong>Profil belum lengkap</strong><p class="muted">Isi gender dan grade dulu agar bisa ikut sesi.</p>';
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-user-pen"></i> Lengkapi Profil';
+    return;
+  }
+
+  if (player?.status === 'waiting') {
+    box.innerHTML = `<strong>Sudah di antrean</strong><p class="muted">${session.title} · ${session.code}</p>`;
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-check"></i> Sudah Join';
+    return;
+  }
+
+  if (player?.status === 'playing') {
+    box.innerHTML = `<strong>Sedang bermain</strong><p class="muted">${session.title} · ${session.code}</p>`;
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-shuttlecock"></i> Sedang Bermain';
+    return;
+  }
+
+  box.innerHTML = `<strong>Sesi aktif tersedia</strong><p class="muted">${session.title} · Kode ${session.code}</p>`;
+  button.disabled = false;
+  button.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Join Sesi Aktif';
+}
+
+async function saveAdminProfile() {
+  const payload = {
+    nama: document.getElementById('adminProfileNama')?.value.trim(),
+    phone: document.getElementById('adminProfilePhone')?.value.trim(),
+    bio: document.getElementById('adminProfileBio')?.value.trim(),
+    gender: document.getElementById('adminProfileGender')?.value,
+    grade: document.getElementById('adminProfileGrade')?.value,
+  };
+
+  if (!payload.nama) {
+    toast('Nama admin wajib diisi', 'error');
+    return;
+  }
+
+  if (!payload.gender || !payload.grade) {
+    toast('Gender dan grade wajib diisi agar admin bisa ikut sesi', 'error');
+    return;
+  }
+
+  const player = await api('/api/players/me/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+
+  saveAdminProfileSession(player);
+  toast('Profil admin berhasil disimpan');
+  addLog('Admin memperbarui profil', 'fa-user-pen');
+}
+
+async function uploadAdminPhoto(file) {
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  const player = await api('/api/players/me/profile-photo', {
+    method: 'POST',
+    body: formData,
+  });
+
+  saveAdminProfileSession(player);
+  toast('Foto profil admin berhasil diupload');
+}
+
+async function deleteAdminPhoto() {
+  const player = await api('/api/players/me/profile-photo', {
+    method: 'DELETE',
+  });
+
+  saveAdminProfileSession(player);
+  toast('Foto profil admin berhasil dihapus');
+}
+
+async function joinActiveSessionAsAdmin() {
+  const result = await api('/api/players/me/join-active', {
+    method: 'POST',
+  });
+
+  if (result.data) {
+    saveAdminProfileSession(result.data);
+  }
+
+  if (result.snapshot) {
+    snapshot = result.snapshot;
+  }
+
+  toast(result.message || 'Berhasil join sesi aktif');
+  addLog(`${adminProfile?.nama || adminProfile?.username || 'Admin'} join sesi aktif`, 'fa-user-plus');
+  renderAll();
 }
 
 function renderAll() {
@@ -653,6 +895,7 @@ function renderAll() {
   renderGenerate();
   renderHistory();
   renderLeaderboard();
+  renderAdminProfile();
 }
 
 async function loadSessions() {
@@ -888,6 +1131,75 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+document.getElementById('saveAdminProfileBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'save-admin-profile',
+    event.currentTarget,
+    saveAdminProfile,
+    {
+      busyText: 'Menyimpan profil...',
+      cooldown: 1200,
+      showDuplicateToast: true,
+    }
+  );
+});
+
+document.getElementById('uploadAdminPhotoBtn')?.addEventListener('click', () => {
+  document.getElementById('adminPhotoInput')?.click();
+});
+
+document.getElementById('adminPhotoInput')?.addEventListener('change', (event) => {
+  const file = event.target.files?.[0];
+
+  runActionOnce(
+    'upload-admin-photo',
+    document.getElementById('uploadAdminPhotoBtn'),
+    () => uploadAdminPhoto(file),
+    {
+      busyText: 'Upload...',
+      cooldown: 1200,
+      showDuplicateToast: true,
+    }
+  ).finally(() => {
+    event.target.value = '';
+  });
+});
+
+document.getElementById('deleteAdminPhotoBtn')?.addEventListener('click', async (event) => {
+  const ok = await showConfirmDialog({
+    title: 'Hapus Foto?',
+    message: 'Foto profil admin akan dihapus dari akun ini.',
+    confirmText: 'IYA, HAPUS',
+    cancelText: 'BATAL',
+    danger: true,
+  });
+
+  if (!ok) return;
+
+  runActionOnce(
+    'delete-admin-photo',
+    event.currentTarget,
+    deleteAdminPhoto,
+    {
+      busyText: 'Menghapus...',
+      cooldown: 1200,
+      showDuplicateToast: true,
+    }
+  );
+});
+
+document.getElementById('adminJoinActiveBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'admin-join-active',
+    event.currentTarget,
+    joinActiveSessionAsAdmin,
+    {
+      busyText: 'Join...',
+      cooldown: 1500,
+      showDuplicateToast: true,
+    }
+  );
+});
 
 function defaultLocalDateTime() {
   const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);

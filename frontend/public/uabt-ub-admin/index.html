@@ -31,6 +31,7 @@
     <p class="nav-label">MENU</p>
     <nav class="nav">
       <a href="#" class="nav-item active" data-page="dashboard"><i class="fa-solid fa-grip"></i><span>Dashboard</span></a>
+      <a href="#" class="nav-item" data-page="profile"><i class="fa-solid fa-user-gear"></i><span>Profil Admin</span></a>
       <a href="#" class="nav-item" data-page="scan"><i class="fa-solid fa-calendar-plus"></i><span>Tambahkan Sesi</span></a>
       <a href="#" class="nav-item" data-page="antrean"><i class="fa-solid fa-users"></i><span>Antrean</span><span class="nav-badge" id="antreanBadge">0</span></a>
       <a href="#" class="nav-item" data-page="generate"><i class="fa-solid fa-bolt"></i><span>Generate Match</span></a>
@@ -120,7 +121,106 @@
         </ul>
       </div>
     </section>
+    <!-- ===== PROFIL ADMIN ===== -->
+    <section class="page" id="page-profile">
+      <div class="profile-layout">
+        <div class="card reveal profile-card">
+          <div class="card-head">
+            <div>
+              <h3>Profil Admin</h3>
+              <p class="muted">Data ini dipakai saat admin ikut antrean dan matchmaking.</p>
+            </div>
+          </div>
 
+          <div class="admin-profile-hero">
+            <div class="admin-profile-photo" id="adminProfilePhoto">AD</div>
+            <div class="admin-profile-summary">
+              <h2 id="adminProfileNameText">Admin</h2>
+              <p id="adminProfileEmailText" class="muted">-</p>
+              <span class="admin-role-pill">Administrator</span>
+            </div>
+          </div>
+
+          <div class="profile-photo-actions">
+            <input type="file" id="adminPhotoInput" accept="image/*" hidden />
+            <button class="btn-primary sm" id="uploadAdminPhotoBtn" type="button">
+              <i class="fa-solid fa-camera"></i> Upload Foto
+            </button>
+            <button class="btn-danger sm" id="deleteAdminPhotoBtn" type="button">
+              <i class="fa-solid fa-trash"></i> Hapus Foto
+            </button>
+          </div>
+
+          <div class="admin-join-box" id="adminJoinBox">
+            <strong>Status Sesi</strong>
+            <p class="muted">Memuat status sesi...</p>
+          </div>
+
+          <button class="btn-primary big" id="adminJoinActiveBtn" type="button">
+            <i class="fa-solid fa-right-to-bracket"></i> Join Sesi Aktif
+          </button>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-head">
+            <div>
+              <h3>Data Pemain Admin</h3>
+              <p class="muted">Lengkapi gender dan grade agar admin bisa ikut match.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Nama Lengkap</label>
+              <input type="text" id="adminProfileNama" placeholder="Nama admin" />
+            </div>
+
+            <div class="field">
+              <label>Username</label>
+              <input type="text" id="adminProfileUsername" readonly />
+            </div>
+
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="adminProfileEmail" readonly />
+            </div>
+
+            <div class="field">
+              <label>Nomor HP</label>
+              <input type="text" id="adminProfilePhone" placeholder="08xxxxxxxxxx" />
+            </div>
+
+            <div class="field">
+              <label>Gender</label>
+              <select id="adminProfileGender">
+                <option value="">Pilih gender</option>
+                <option value="P">Pria</option>
+                <option value="W">Wanita</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Grade</label>
+              <select id="adminProfileGrade">
+                <option value="">Pilih grade</option>
+                <option value="A">A — Jago</option>
+                <option value="B">B — Menengah</option>
+                <option value="C">C — Pemula</option>
+              </select>
+            </div>
+
+            <div class="field profile-bio-field">
+              <label>Bio</label>
+              <textarea id="adminProfileBio" class="input-block" rows="4" maxlength="300" placeholder="Tulis bio singkat admin..."></textarea>
+            </div>
+          </div>
+
+          <button class="btn-primary big" id="saveAdminProfileBtn" type="button">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Profil
+          </button>
+        </div>
+      </div>
+    </section>
     <!-- ===== TAMBAHKAN SESI ===== -->
     <section class="page" id="page-scan">
       <div class="grid-2">
