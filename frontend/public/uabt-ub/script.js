@@ -61,19 +61,6 @@ const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
 
-let sidebarAutoCloseTimer = null;
-
-function openSidebarTemporarily(duration = 1600) {
-  if (!isMobile()) return;
-
-  clearTimeout(sidebarAutoCloseTimer);
-  setMobileSidebar(true);
-
-  sidebarAutoCloseTimer = setTimeout(() => {
-    setMobileSidebar(false);
-  }, duration);
-}
-
 function setMobileSidebar(open) {
   if (!app) return;
 
@@ -89,21 +76,10 @@ toggleBtn?.setAttribute('aria-expanded', 'false');
 
 toggleBtn?.addEventListener('click', () => {
   if (isMobile()) {
-    const willOpen = !app.classList.contains('expanded');
-
-    clearTimeout(sidebarAutoCloseTimer);
-    setMobileSidebar(willOpen);
-
-    if (willOpen) {
-      sidebarAutoCloseTimer = setTimeout(() => {
-        setMobileSidebar(false);
-      }, 3500);
-    }
-
-    return;
+    setMobileSidebar(!app.classList.contains('expanded'));
+  } else {
+    app.classList.toggle('collapsed');
   }
-
-  app.classList.toggle('collapsed');
 });
 
 document.addEventListener('click', (event) => {
@@ -876,7 +852,6 @@ async function deleteProfilePhoto() {
 
 document.getElementById('openProfileBtn')?.addEventListener('click', () => {
   goToPage('profile');
-  openSidebarTemporarily(1600);
 });
 
 document.getElementById('chooseProfilePhotoBtn')?.addEventListener('click', () => {
@@ -1081,9 +1056,7 @@ function goToPage(name) {
     renderAccountSecurityForm();
   }
 
-  if (isMobile()) {
-    openSidebarTemporarily(1600);
-  }
+  if (isMobile()) setMobileSidebar(false);
 }
 
 document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', (e) => {

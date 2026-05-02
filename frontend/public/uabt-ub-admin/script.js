@@ -143,19 +143,6 @@ const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
 
-let sidebarAutoCloseTimer = null;
-
-function openSidebarTemporarily(duration = 1600) {
-  if (!isMobile()) return;
-
-  clearTimeout(sidebarAutoCloseTimer);
-  setMobileSidebar(true);
-
-  sidebarAutoCloseTimer = setTimeout(() => {
-    setMobileSidebar(false);
-  }, duration);
-}
-
 function setMobileSidebar(open) {
   if (!app) return;
 
@@ -171,21 +158,10 @@ toggleBtn?.setAttribute('aria-expanded', 'false');
 
 toggleBtn?.addEventListener('click', () => {
   if (isMobile()) {
-    const willOpen = !app.classList.contains('expanded');
-
-    clearTimeout(sidebarAutoCloseTimer);
-    setMobileSidebar(willOpen);
-
-    if (willOpen) {
-      sidebarAutoCloseTimer = setTimeout(() => {
-        setMobileSidebar(false);
-      }, 3500);
-    }
-
-    return;
+    setMobileSidebar(!app.classList.contains('expanded'));
+  } else {
+    app.classList.toggle('collapsed');
   }
-
-  app.classList.toggle('collapsed');
 });
 
 document.addEventListener('click', (event) => {
@@ -226,6 +202,7 @@ const pageMeta = {
   leaderboard: { title: 'Leaderboard', sub: 'Ranking pemain sesi ini' },
   pengaturan: { title: 'Pengaturan', sub: 'Konfigurasi sistem' },
 };
+
 function goToPage(name) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById(`page-${name}`)?.classList.add('active');
@@ -236,6 +213,7 @@ function goToPage(name) {
   }
   if (isMobile()) setMobileSidebar(false);
 }
+
 document.querySelectorAll('[data-page]').forEach((item) => item.addEventListener('click', (e) => {
   e.preventDefault();
   goToPage(item.dataset.page);
