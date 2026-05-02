@@ -367,6 +367,15 @@ function winnerText(winner) {
   return 'Belum diisi';
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function renderStats() {
   if (!snapshot) return;
   document.getElementById('statQueue').textContent = snapshot.stats.queue;
@@ -630,6 +639,219 @@ function renderGenerate() {
       }
     `;
   }
+}
+
+function manualSelectIds() {
+  return [
+    'manualTeam1Player1',
+    'manualTeam1Player2',
+    'manualTeam2Player1',
+    'manualTeam2Player2',
+  ];
+}
+
+function getManualPlayersMap() {
+  return new Map((snapshot?.queue || []).map((player) => [String(player._id || player.id), player]));
+}
+
+function getManualSelectedIds() {
+  return manualSelectIds()
+    .map((id) => document.getElementById(id)?.value || '')
+    .filter(Boolean);
+}
+
+function getAvailableManualCourts() {
+  const activeMatches = (snapshot?.matches || []).filter((match) => match.status === 'playing');
+  const courts = parseCourtList(snapshot?.session?.court || 'Court 1');
+
+  const busyCourts = new Set(
+    activeMatches
+      .map((match) => String(match.court || '').trim())
+      .filter(Boolean)
+  );
+
+  return courts.filter((court) => !busyCourts.has(court));
+}
+
+function renderManualMatch() {
+  const card = document.querySelector('.manual-match-card');
+  if (!card) return;
+
+  const queue = snapshot?.queue || [];
+  const playersMap = getManualPlayersMap();
+  const availableCourts = getAvailableManualCourts();
+
+  const courtSelect = document.getElementById('manualCourt');
+  const selectedCourt = courtSelect?.value || '';
+
+  if (courtSelect) {
+    courtSelect.innerHTML = availableCourts.length
+      ? availableCourts.map((court) => `<option value="${escapeHtml(court)}">${escapeHtml(court)}</option>`).join('')
+      : '<option value="">Tidak ada court kosong</option>';
+
+    if (selectedCourt && availableCourts.includes(selectedCourt)) {
+      courtSelect.value = selectedCourt;
+    }
+  }
+
+  const selectedValues = {};
+  manualSelectIds().forEach((id) => {
+    selectedValues[id] = document.getElementById(id)?.value || '';
+  });
+
+  const options = [
+    '<option value="">Pilih pemain</option>',
+    ...queue.map((player) => `
+      <option value="${player._id}">
+        ${escapeHtml(player.nama)} (${escapeHtml(player.grade)}/${escapeHtml(player.gender)}) · ${player.jumlah_main || 0}x
+      </option>
+    `),
+  ].join('');
+
+  manualSelectIds().forEach((id) => {
+    const select = document.getElementById(id);
+    if (!select) return;
+
+    select.innerHTML = options;
+
+    if (selectedValues[id] && playersMap.has(String(selectedValues[id]))) {
+      select.value = selectedValues[id];
+    }
+  });
+
+  updateManualMatchPreview();
+}
+
+function updateManualMatchPreview() {
+  const preview = document.getElementById('manualMatchPreview');
+  const button = document.getElementById('manualMatchBtn');
+  const courtSelect = document.getElementById('manualCourt');
+  const playersMap = getManualPlayersMap();
+
+  if (!preview || !button) return;
+
+  const selectedIds = getManualSelectedIds();
+  const uniqueIds = [...new Set(selectedIds)];
+  const hasSession = Boolean(snapshot?.session);
+  const hasCourt = Boolean(courtSelect?.value);
+  const hasFourPlayers = selectedIds.length === 4;
+  const noDuplicate = uniqueIds.length === selectedIds.length;
+
+  const team1Ids = [
+    document.getElementById('manualTeam1Player1')?.value,
+    document.getElementById('manualTeam1Player2')?.value,
+  ].filter(Boolean);
+
+  const team2Ids = [
+    document.getElementById('manualTeam2Player1')?.value,
+    document.getElementById('manualTeam2Player2')?.value,
+  ].filter(Boolean);
+
+  const teamPoint = (ids) => ids.reduce((sum, id) => {
+    const player = playersMap.get(String(id));
+    return sum + gradePoint(player?.grade);
+  }, 0);
+
+  const team1Point = teamPoint(team1Ids);
+  const team2Point = teamPoint(team2Ids);
+
+  const team1PointEl = document.getElementById('manualTeam1Point');
+  const team2PointEl = document.getElementById('manualTeam2Point');
+
+  if (team1PointEl) team1PointEl.textContent = `${team1Point} poin`;
+  if (team2PointEl) team2PointEl.textContent = `${team2Point} poin`;
+
+  if (!hasSession) {
+    preview.textContent = 'Belum ada sesi aktif.';
+    button.disabled = true;
+    return;
+  }
+
+  if (!hasCourt) {
+    preview.textContent = 'Tidak ada court kosong. Selesaikan match aktif dulu.';
+    button.disabled = true;
+    return;
+  }
+
+  if (!hasFourPlayers) {
+    preview.textContent = 'Pilih 4 pemain dari antrean.';
+    button.disabled = true;
+    return;
+  }
+
+  if (!noDuplicate) {
+    preview.textContent = 'Pemain tidak boleh dipilih lebih dari satu kali.';
+    button.disabled = true;
+    return;
+  }
+
+  const team1Text = team1Ids
+    .map((id) => playersMap.get(String(id))?.nama)
+    .filter(Boolean)
+    .join(' + ');
+
+  const team2Text = team2Ids
+    .map((id) => playersMap.get(String(id))?.nama)
+    .filter(Boolean)
+    .join(' + ');
+
+  preview.innerHTML = `
+    <strong>Preview:</strong>
+    ${escapeHtml(team1Text)} <span class="muted">(${team1Point} poin)</span>
+    <br>
+    <span class="muted">VS</span>
+    <br>
+    ${escapeHtml(team2Text)} <span class="muted">(${team2Point} poin)</span>
+  `;
+
+  button.disabled = false;
+}
+
+async function createManualMatch() {
+  const team1Ids = [
+    document.getElementById('manualTeam1Player1')?.value,
+    document.getElementById('manualTeam1Player2')?.value,
+  ].filter(Boolean);
+
+  const team2Ids = [
+    document.getElementById('manualTeam2Player1')?.value,
+    document.getElementById('manualTeam2Player2')?.value,
+  ].filter(Boolean);
+
+  const allIds = [...team1Ids, ...team2Ids];
+  const uniqueIds = [...new Set(allIds)];
+
+  if (allIds.length !== 4) {
+    toast('Pilih 4 pemain terlebih dahulu.', 'error');
+    return;
+  }
+
+  if (uniqueIds.length !== 4) {
+    toast('Pemain tidak boleh dipilih dobel.', 'error');
+    return;
+  }
+
+  const result = await api('/api/matches/manual', {
+    method: 'POST',
+    body: JSON.stringify({
+      sessionId: snapshot?.session?._id,
+      court: document.getElementById('manualCourt')?.value,
+      gameType: document.getElementById('manualGameType')?.value.trim() || 'Manual Request',
+      team1Ids,
+      team2Ids,
+    }),
+  });
+
+  if (result.snapshot) {
+    snapshot = result.snapshot;
+  }
+
+  const match = result.match;
+
+  toast(result.message || `Manual match #${match?.matchNo || ''} berhasil dibuat`);
+  addLog(`Manual match #${match?.matchNo || '-'} dibuat di ${match?.court || '-'}`, 'fa-people-arrows');
+
+  await loadSnapshot();
 }
 
 function renderHistory() {
@@ -1046,9 +1268,9 @@ function renderAll() {
   renderSessionManagement();
   renderQueue();
   renderGenerate();
+  renderManualMatch();
   renderHistory();
   renderLeaderboard();
-  renderAdminProfile();
 }
 
 async function loadSessions() {
@@ -1662,6 +1884,26 @@ document.getElementById('generateBtn')?.addEventListener('click', (event) => {
     },
     {
       busyText: 'Generate...',
+      cooldown: 1500,
+      showDuplicateToast: true,
+    }
+  );
+});
+
+manualSelectIds().forEach((id) => {
+  document.getElementById(id)?.addEventListener('change', updateManualMatchPreview);
+});
+
+document.getElementById('manualCourt')?.addEventListener('change', updateManualMatchPreview);
+document.getElementById('manualGameType')?.addEventListener('input', updateManualMatchPreview);
+
+document.getElementById('manualMatchBtn')?.addEventListener('click', (event) => {
+  runActionOnce(
+    'manual-match',
+    event.currentTarget,
+    createManualMatch,
+    {
+      busyText: 'Membuat match...',
       cooldown: 1500,
       showDuplicateToast: true,
     }

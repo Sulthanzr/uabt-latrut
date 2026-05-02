@@ -1307,3 +1307,80 @@ body.modal-open {
   letter-spacing: 1px;
   min-height: 52px;
 }
+
+/* ===== Manual Match ===== */
+
+.manual-match-card {
+  margin-top: 18px;
+}
+
+.manual-match-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(220px, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.manual-match-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manual-team-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.manual-team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.manual-team-head strong {
+  font-family: 'Poppins';
+  color: var(--text);
+}
+
+.manual-point {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(86, 171, 47, 0.14);
+  color: var(--accent-2);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.manual-match-preview {
+  margin: 14px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(95, 185, 255, 0.08);
+  border: 1px solid rgba(95, 185, 255, 0.22);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .manual-match-toolbar,
+  .manual-match-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-match-card .btn-primary.big {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .manual-team-card {
+    padding: 14px;
+  }
+}

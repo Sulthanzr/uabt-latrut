@@ -323,6 +323,87 @@
           </div>
         </div>
       </div>
+      <div class="card reveal manual-match-card">
+        <div class="card-head">
+          <div>
+            <h3>Manual Match</h3>
+            <p class="muted">Pilih 4 pemain dari antrean untuk request main bareng.</p>
+          </div>
+        </div>
+
+        <div class="manual-match-toolbar">
+          <div class="field">
+            <label>Court</label>
+            <select id="manualCourt" class="input-block">
+              <option value="">Pilih court</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tipe Game</label>
+            <input
+              type="text"
+              id="manualGameType"
+              class="input-block"
+              value="Manual Request"
+              maxlength="40"
+              placeholder="Contoh: Manual Request"
+            />
+          </div>
+        </div>
+
+        <div class="manual-match-grid">
+          <div class="manual-team-card">
+            <div class="manual-team-head">
+              <strong>Tim A</strong>
+              <span id="manualTeam1Point" class="manual-point">0 poin</span>
+            </div>
+
+            <div class="field">
+              <label>Pemain 1</label>
+              <select id="manualTeam1Player1" class="input-block manual-player-select">
+                <option value="">Pilih pemain</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Pemain 2</label>
+              <select id="manualTeam1Player2" class="input-block manual-player-select">
+                <option value="">Pilih pemain</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="manual-team-card">
+            <div class="manual-team-head">
+              <strong>Tim B</strong>
+              <span id="manualTeam2Point" class="manual-point">0 poin</span>
+            </div>
+
+            <div class="field">
+              <label>Pemain 1</label>
+              <select id="manualTeam2Player1" class="input-block manual-player-select">
+                <option value="">Pilih pemain</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Pemain 2</label>
+              <select id="manualTeam2Player2" class="input-block manual-player-select">
+                <option value="">Pilih pemain</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="manual-match-preview" id="manualMatchPreview">
+          Pilih 4 pemain dari antrean.
+        </div>
+
+        <button class="btn-primary big" id="manualMatchBtn" type="button" disabled>
+          <i class="fa-solid fa-people-arrows"></i> Buat Match Manual
+        </button>
+      </div>
     </section>
 
     <!-- ===== RIWAYAT MATCH ===== -->

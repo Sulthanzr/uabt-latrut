@@ -6,6 +6,7 @@ import { getSessionSnapshot } from '../services/snapshot.js';
 import { emitToSession } from '../socket/realtime.js';
 import {
   completeMatchTransactional,
+  createManualMatchTransactional,
   findMatches,
   generateMatchTransactional,
   generateMatchesBatchTransactional,
@@ -103,6 +104,38 @@ matchRouter.post('/generate-batch', requireAuth, requireAdmin, asyncHandler(asyn
     data: {
       matches: populatedMatches,
       meta: generated.meta,
+      snapshot,
+    },
+  });
+}));
+
+matchRouter.post('/manual', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const body = z.object({
+    sessionId: z.string().optional(),
+    court: z.string().min(1, 'Court wajib dipilih.'),
+    gameType: z.string().max(40).optional().default('Manual Request'),
+    team1Ids: z.array(z.string().uuid()).length(2, 'Tim A harus berisi 2 pemain.'),
+    team2Ids: z.array(z.string().uuid()).length(2, 'Tim B harus berisi 2 pemain.'),
+  }).parse(req.body ?? {});
+
+  const created = await createManualMatchTransactional(body);
+
+  if (created.error) {
+    return res.status(created.error.status).json({
+      message: created.error.message,
+    });
+  }
+
+  const populated = await populateMatch(created.match);
+  const snapshot = await getSessionSnapshot(created.session._id);
+
+  emitToSession(created.session._id, 'match:generated', populated);
+  emitToSession(created.session._id, 'snapshot:update', snapshot);
+
+  res.status(201).json({
+    data: {
+      message: 'Manual match berhasil dibuat.',
+      match: populated,
       snapshot,
     },
   });
