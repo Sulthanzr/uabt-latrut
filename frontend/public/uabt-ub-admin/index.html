@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -407,9 +408,36 @@
   </main>
 </div>
 
+<div class="profile-crop-modal" id="adminCropperModal" aria-hidden="true">
+  <div class="profile-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="adminCropperTitle">
+    <div class="profile-crop-header">
+      <div>
+        <h3 id="adminCropperTitle">Crop Foto Profil</h3>
+        <p class="muted">Geser dan zoom foto agar wajah pas di area kotak.</p>
+      </div>
+      <button type="button" class="icon-btn" id="closeAdminCropperBtn" aria-label="Tutup cropper">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="profile-crop-body">
+      <img id="adminCropperImage" alt="Foto profil admin" />
+    </div>
+
+    <div class="profile-crop-actions">
+      <button type="button" class="btn-ghost" id="cancelAdminCropBtn">
+        Batal
+      </button>
+      <button type="button" class="btn-primary" id="saveAdminCropBtn">
+        <i class="fa-solid fa-crop-simple"></i> Crop & Upload
+      </button>
+    </div>
+  </div>
+</div>
 <div id="toast" class="toast"></div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -1172,3 +1172,129 @@ body.sidebar-open {
     height: 82px;
   }
 }
+
+/* ===== Admin Profile Cropper Modal ===== */
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.profile-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.profile-crop-modal.show {
+  display: flex;
+}
+
+.profile-crop-dialog {
+  width: min(680px, 100%);
+  max-height: calc(100dvh - 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+}
+
+.profile-crop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.profile-crop-header h3 {
+  font-family: 'Poppins';
+  font-size: 18px;
+  margin: 0;
+}
+
+.profile-crop-body {
+  width: 100%;
+  height: min(58vh, 480px);
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}
+
+.profile-crop-body img {
+  display: block;
+  max-width: 100%;
+}
+
+.profile-crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cropper-view-box,
+.cropper-face {
+  border-radius: 18px;
+}
+
+.cropper-line,
+.cropper-point {
+  background-color: var(--accent-2);
+}
+
+.cropper-view-box {
+  outline-color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .profile-crop-modal {
+    align-items: flex-end;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .profile-crop-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 22px 22px 16px 16px;
+    padding: 16px;
+  }
+
+  .profile-crop-body {
+    height: min(52vh, 390px);
+    min-height: 260px;
+  }
+
+  .profile-crop-actions {
+    flex-direction: column;
+  }
+
+  .profile-crop-actions .btn-primary,
+  .profile-crop-actions .btn-ghost {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-crop-header h3 {
+    font-size: 16px;
+  }
+
+  .profile-crop-body {
+    height: 46vh;
+    min-height: 240px;
+  }
+}

@@ -12,7 +12,7 @@ let snapshot = null;
 let sessions = [];
 
 let adminProfile = CURRENT_USER ? { ...CURRENT_USER } : null;
-
+let adminCropper = null;
 const ACTION_LOCKS = new Map();
 
 function setButtonBusy(button, isBusy, busyText = 'Memproses...') {
@@ -177,7 +177,11 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && isMobile()) {
+  if (event.key !== 'Escape') return;
+
+  closeAdminCropperModal();
+
+  if (isMobile()) {
     setMobileSidebar(false);
   }
 });
@@ -859,6 +863,121 @@ async function uploadAdminPhoto(file) {
   toast('Foto profil admin berhasil diupload');
 }
 
+function openAdminCropperModal(file) {
+  const modal = document.getElementById('adminCropperModal');
+  const image = document.getElementById('adminCropperImage');
+
+  if (!modal || !image || !file) return;
+
+  if (!file.type.startsWith('image/')) {
+    toast('File harus berupa gambar', 'error');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast('Ukuran foto maksimal 5MB', 'error');
+    return;
+  }
+
+  if (!window.Cropper) {
+    toast('Cropper belum siap. Refresh halaman lalu coba lagi.', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    image.src = reader.result;
+
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+
+    if (adminCropper) {
+      adminCropper.destroy();
+      adminCropper = null;
+    }
+
+    adminCropper = new Cropper(image, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.9,
+      responsive: true,
+      background: false,
+      guides: true,
+      center: true,
+      movable: true,
+      zoomable: true,
+      rotatable: false,
+      scalable: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      minCropBoxWidth: 160,
+      minCropBoxHeight: 160,
+    });
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function closeAdminCropperModal() {
+  const modal = document.getElementById('adminCropperModal');
+  const image = document.getElementById('adminCropperImage');
+  const input = document.getElementById('adminPhotoInput');
+
+  if (modal) {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  document.body.classList.remove('modal-open');
+
+  if (adminCropper) {
+    adminCropper.destroy();
+    adminCropper = null;
+  }
+
+  if (image) image.removeAttribute('src');
+  if (input) input.value = '';
+}
+
+async function uploadCroppedAdminPhoto() {
+  if (!adminCropper) {
+    toast('Pilih foto terlebih dahulu', 'error');
+    return;
+  }
+
+  const canvas = adminCropper.getCroppedCanvas({
+    width: 512,
+    height: 512,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high',
+  });
+
+  if (!canvas) {
+    toast('Gagal memproses crop foto', 'error');
+    return;
+  }
+
+  const blob = await new Promise((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', 0.9);
+  });
+
+  if (!blob) {
+    toast('Gagal membuat file foto', 'error');
+    return;
+  }
+
+  const croppedFile = new File([blob], 'admin-profile-photo.jpg', {
+    type: 'image/jpeg',
+    lastModified: Date.now(),
+  });
+
+  await uploadAdminPhoto(croppedFile);
+  closeAdminCropperModal();
+}
+
 async function deleteAdminPhoto() {
   const player = await api('/api/players/me/profile-photo', {
     method: 'DELETE',
@@ -1151,18 +1270,31 @@ document.getElementById('uploadAdminPhotoBtn')?.addEventListener('click', () => 
 document.getElementById('adminPhotoInput')?.addEventListener('change', (event) => {
   const file = event.target.files?.[0];
 
+  if (!file) return;
+
+  openAdminCropperModal(file);
+});
+
+document.getElementById('closeAdminCropperBtn')?.addEventListener('click', closeAdminCropperModal);
+document.getElementById('cancelAdminCropBtn')?.addEventListener('click', closeAdminCropperModal);
+
+document.getElementById('saveAdminCropBtn')?.addEventListener('click', (event) => {
   runActionOnce(
-    'upload-admin-photo',
-    document.getElementById('uploadAdminPhotoBtn'),
-    () => uploadAdminPhoto(file),
+    'upload-admin-cropped-photo',
+    event.currentTarget,
+    uploadCroppedAdminPhoto,
     {
       busyText: 'Upload...',
       cooldown: 1200,
       showDuplicateToast: true,
     }
-  ).finally(() => {
-    event.target.value = '';
-  });
+  );
+});
+
+document.getElementById('adminCropperModal')?.addEventListener('click', (event) => {
+  if (event.target.id === 'adminCropperModal') {
+    closeAdminCropperModal();
+  }
 });
 
 document.getElementById('deleteAdminPhotoBtn')?.addEventListener('click', async (event) => {
