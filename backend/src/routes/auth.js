@@ -52,6 +52,8 @@ const googleCompleteProfileSchema = z.object({
   tempToken: z.string().min(1),
   nama: z.string().min(2),
   username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9._-]+$/),
+  password: z.string().min(8, 'Password minimal 8 karakter.'),
+  confirmPassword: z.string().min(1, 'Konfirmasi password wajib diisi.'),
   gender: z.enum(['P', 'W']),
   grade: z.enum(['A', 'B', 'C']),
   phone: z.string().optional().or(z.literal('')),
@@ -155,12 +157,23 @@ authRouter.post('/register/request-otp', asyncHandler(async (req, res) => {
   const payload = registerOtpRequestSchema.parse(req.body);
   const username = payload.username.trim().toLowerCase();
   const email = normalizeEmail(payload.email);
+  if (payload.password !== payload.confirmPassword) {
+    return res.status(400).json({ message: 'Konfirmasi password tidak cocok.' });
+  }
+
+  if (!/[A-Za-z]/.test(payload.password)) {
+    return res.status(400).json({ message: 'Password harus mengandung huruf.' });
+  }
+
+  if (!/[0-9]/.test(payload.password)) {
+    return res.status(400).json({ message: 'Password harus mengandung angka.' });
+  }
 
   await ensureRegisterIdentityAvailable({ email, username });
   const delivery = await createRegisterOtp(email);
   const message = delivery?.delivered
-    ? 'Kode OTP sudah dikirim ke email. Masukkan kode OTP untuk menyelesaikan registrasi.'
-    : 'OTP dibuat. Untuk testing lokal, cek kode OTP di terminal backend karena SMTP email belum berhasil.';
+  ? 'Kode OTP sudah dikirim ke email. Masukkan kode OTP untuk menyelesaikan registrasi.'
+  : 'OTP dibuat. Untuk testing lokal, cek kode OTP di terminal backend karena SMTP email belum berhasil.';
 
   res.json({
     data: {

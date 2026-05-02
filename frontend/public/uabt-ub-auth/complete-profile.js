@@ -31,6 +31,26 @@ function usernameFromEmail(email) {
   return String(email || '').split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase().slice(0, 32);
 }
 
+function validatePassword(password, confirmPassword) {
+  if (!password || password.length < 8) {
+    return 'Password minimal 8 karakter.';
+  }
+
+  if (!/[A-Za-z]/.test(password)) {
+    return 'Password harus mengandung huruf.';
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return 'Password harus mengandung angka.';
+  }
+
+  if (password !== confirmPassword) {
+    return 'Konfirmasi password tidak cocok.';
+  }
+
+  return null;
+}
+
 function saveAuthSession(auth) {
   const player = auth.player || auth;
   if (auth.token) localStorage.setItem('uabt-auth-token', auth.token);
@@ -50,6 +70,22 @@ document.getElementById('backToLogin')?.addEventListener('click', () => {
   localStorage.removeItem('uabt-google-profile');
 });
 
+document.querySelectorAll('[data-toggle-password]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const input = document.getElementById(button.dataset.togglePassword);
+    const icon = button.querySelector('i');
+
+    if (!input) return;
+
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+
+    if (icon) {
+      icon.className = isHidden ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    }
+  });
+});
+
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const button = form.querySelector('button[type="submit"]');
@@ -58,12 +94,24 @@ form?.addEventListener('submit', async (event) => {
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
 
   try {
+    const password = document.getElementById('profile-password').value;
+    const confirmPassword = document.getElementById('profile-confirm-password').value;
+
+    const passwordError = validatePassword(password, confirmPassword);
+
+    if (passwordError) {
+      showMessage(passwordError);
+      return;
+    }
+
     const auth = await api('/api/auth/google/complete-profile', {
       method: 'POST',
       body: JSON.stringify({
         tempToken,
         nama: document.getElementById('profile-nama').value.trim(),
         username: document.getElementById('profile-username').value.trim().toLowerCase(),
+        password,
+        confirmPassword,
         gender: document.getElementById('profile-gender').value,
         grade: document.getElementById('profile-grade').value,
         phone: document.getElementById('profile-phone').value.trim(),

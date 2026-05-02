@@ -37,6 +37,26 @@
           <div class="auth-input-wrap"><i class="fa-solid fa-user"></i><input id="profile-username" type="text" placeholder="username" required /></div>
         </div>
         <div class="auth-field">
+          <label for="profile-password">Password</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input id="profile-password" type="password" placeholder="Minimal 8 karakter" required minlength="8" autocomplete="new-password" />
+            <button type="button" class="toggle-pass" data-toggle-password="profile-password" aria-label="Tampilkan password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
+          <label for="profile-confirm-password">Konfirmasi Password</label>
+          <div class="auth-input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input id="profile-confirm-password" type="password" placeholder="Ulangi password" required minlength="8" autocomplete="new-password" />
+            <button type="button" class="toggle-pass" data-toggle-password="profile-confirm-password" aria-label="Tampilkan konfirmasi password">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="auth-field">
           <label for="profile-gender">Gender</label>
           <div class="auth-input-wrap"><i class="fa-solid fa-venus-mars"></i><select id="profile-gender" required><option value="">Pilih gender</option><option value="P">Pria</option><option value="W">Wanita</option></select></div>
         </div>

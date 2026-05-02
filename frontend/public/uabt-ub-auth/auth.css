@@ -117,3 +117,93 @@
 @media (max-width: 480px) {
   .btn-otp-inline { min-width: 104px; padding: 0 10px; font-size: 11.5px; }
 }
+
+/* ===== Complete Profile Mobile Polish ===== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+.auth-body {
+  min-height: 100dvh;
+}
+
+.auth-shell {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.auth-card {
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+}
+
+.auth-input-wrap input[type="password"],
+.auth-input-wrap input[type="text"],
+.auth-input-wrap select {
+  min-width: 0;
+}
+
+.toggle-pass {
+  flex: 0 0 auto;
+  min-width: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+}
+
+.toggle-pass:active {
+  background: #f1f9e6;
+}
+
+@media (max-width: 480px) {
+  .auth-shell {
+    align-items: flex-start;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .auth-card {
+    max-height: none;
+    border-radius: 20px;
+    padding: 24px 18px;
+  }
+
+  .auth-form {
+    gap: 12px;
+  }
+
+  .auth-input-wrap {
+    min-height: 46px;
+  }
+
+  .auth-input-wrap input,
+  .auth-input-wrap select {
+    font-size: 16px;
+    padding: 12px 0;
+  }
+
+  .auth-btn {
+    min-height: 48px;
+  }
+
+  .auth-foot {
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-title {
+    font-size: 20px;
+  }
+
+  .auth-sub {
+    font-size: 12px;
+  }
+
+  .auth-logo {
+    width: 56px;
+    height: 56px;
+  }
+}
