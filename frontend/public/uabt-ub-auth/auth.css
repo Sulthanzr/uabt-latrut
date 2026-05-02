@@ -159,7 +159,9 @@ html {
 
 @media (max-width: 480px) {
   .auth-shell {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
     padding-left: 14px;
     padding-right: 14px;
   }
@@ -205,5 +207,42 @@ html {
   .auth-logo {
     width: 56px;
     height: 56px;
+  }
+}
+
+/* ===== Login Mobile Center Fix ===== */
+
+.auth-logo {
+  animation: none !important;
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  .auth-body {
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .auth-shell {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+  }
+
+  .auth-card {
+    margin: auto 0;
+  }
+}
+
+@media (max-height: 760px) and (max-width: 640px) {
+  .auth-shell {
+    align-items: center;
   }
 }

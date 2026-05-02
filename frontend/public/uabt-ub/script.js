@@ -61,6 +61,19 @@ const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
 
+let sidebarAutoCloseTimer = null;
+
+function openSidebarTemporarily(duration = 1600) {
+  if (!isMobile()) return;
+
+  clearTimeout(sidebarAutoCloseTimer);
+  setMobileSidebar(true);
+
+  sidebarAutoCloseTimer = setTimeout(() => {
+    setMobileSidebar(false);
+  }, duration);
+}
+
 function setMobileSidebar(open) {
   if (!app) return;
 
@@ -76,10 +89,21 @@ toggleBtn?.setAttribute('aria-expanded', 'false');
 
 toggleBtn?.addEventListener('click', () => {
   if (isMobile()) {
-    setMobileSidebar(!app.classList.contains('expanded'));
-  } else {
-    app.classList.toggle('collapsed');
+    const willOpen = !app.classList.contains('expanded');
+
+    clearTimeout(sidebarAutoCloseTimer);
+    setMobileSidebar(willOpen);
+
+    if (willOpen) {
+      sidebarAutoCloseTimer = setTimeout(() => {
+        setMobileSidebar(false);
+      }, 3500);
+    }
+
+    return;
   }
+
+  app.classList.toggle('collapsed');
 });
 
 document.addEventListener('click', (event) => {
@@ -852,6 +876,7 @@ async function deleteProfilePhoto() {
 
 document.getElementById('openProfileBtn')?.addEventListener('click', () => {
   goToPage('profile');
+  openSidebarTemporarily(1600);
 });
 
 document.getElementById('chooseProfilePhotoBtn')?.addEventListener('click', () => {
@@ -1056,17 +1081,15 @@ function goToPage(name) {
     renderAccountSecurityForm();
   }
 
-  if (isMobile()) setMobileSidebar(false);
+  if (isMobile()) {
+    openSidebarTemporarily(1600);
+  }
 }
 
 document.querySelectorAll('.nav-item').forEach((item) => item.addEventListener('click', (e) => {
   e.preventDefault();
   if (item.dataset.page) goToPage(item.dataset.page);
 }));
-
-document.getElementById('openProfileBtn')?.addEventListener('click', () => {
-  goToPage('profile');
-});
 
 document.querySelector('.logout')?.addEventListener('click', () => {
   localStorage.removeItem('uabt-auth-token');

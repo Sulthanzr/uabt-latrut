@@ -143,6 +143,19 @@ const app = document.querySelector('.app');
 const toggleBtn = document.getElementById('toggleSidebar');
 const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
 
+let sidebarAutoCloseTimer = null;
+
+function openSidebarTemporarily(duration = 1600) {
+  if (!isMobile()) return;
+
+  clearTimeout(sidebarAutoCloseTimer);
+  setMobileSidebar(true);
+
+  sidebarAutoCloseTimer = setTimeout(() => {
+    setMobileSidebar(false);
+  }, duration);
+}
+
 function setMobileSidebar(open) {
   if (!app) return;
 
@@ -158,10 +171,21 @@ toggleBtn?.setAttribute('aria-expanded', 'false');
 
 toggleBtn?.addEventListener('click', () => {
   if (isMobile()) {
-    setMobileSidebar(!app.classList.contains('expanded'));
-  } else {
-    app.classList.toggle('collapsed');
+    const willOpen = !app.classList.contains('expanded');
+
+    clearTimeout(sidebarAutoCloseTimer);
+    setMobileSidebar(willOpen);
+
+    if (willOpen) {
+      sidebarAutoCloseTimer = setTimeout(() => {
+        setMobileSidebar(false);
+      }, 3500);
+    }
+
+    return;
   }
+
+  app.classList.toggle('collapsed');
 });
 
 document.addEventListener('click', (event) => {
@@ -1352,10 +1376,38 @@ document.getElementById('deleteAdminPhotoBtn')?.addEventListener('click', async 
   );
 });
 
-document.getElementById('adminJoinActiveBtn')?.addEventListener('click', (event) => {
+document.getElementById('adminJoinActiveBtn')?.addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  const mode = button.dataset.mode || 'join';
+
+  if (mode === 'leave') {
+    const ok = await showConfirmDialog({
+      title: 'Keluar Sesi?',
+      message: 'Admin akan keluar dari antrean sesi aktif. Kamu bisa join lagi nanti jika diperlukan.',
+      confirmText: 'IYA, KELUAR',
+      cancelText: 'BATAL',
+      danger: true,
+    });
+
+    if (!ok) return;
+
+    runActionOnce(
+      'admin-leave-active',
+      button,
+      leaveActiveSessionAsAdmin,
+      {
+        busyText: 'Keluar...',
+        cooldown: 1500,
+        showDuplicateToast: true,
+      }
+    );
+
+    return;
+  }
+
   runActionOnce(
     'admin-join-active',
-    event.currentTarget,
+    button,
     joinActiveSessionAsAdmin,
     {
       busyText: 'Join...',
