@@ -1298,3 +1298,12 @@ body.modal-open {
     min-height: 240px;
   }
 }
+
+.btn-danger.big {
+  width: 100%;
+  padding: 16px;
+  font-size: 14px;
+  margin-top: 14px;
+  letter-spacing: 1px;
+  min-height: 52px;
+}

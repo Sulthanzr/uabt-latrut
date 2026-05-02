@@ -784,11 +784,17 @@ function renderAdminJoinStatus() {
   if (!box || !button) return;
 
   const session = snapshot?.session;
-  const player = (snapshot?.players || []).find((p) => String(p._id || p.id) === String(adminProfile?._id || adminProfile?.id));
+  const player = (snapshot?.players || []).find((p) =>
+    String(p._id || p.id) === String(adminProfile?._id || adminProfile?.id)
+  );
+
+  button.className = 'btn-primary big';
+  button.dataset.mode = 'join';
 
   if (!session) {
     box.innerHTML = '<strong>Belum ada sesi aktif</strong><p class="muted">Buat atau aktifkan sesi dulu sebelum join.</p>';
     button.disabled = true;
+    button.dataset.mode = '';
     button.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Belum Ada Sesi';
     return;
   }
@@ -796,26 +802,32 @@ function renderAdminJoinStatus() {
   if (!adminProfile?.gender || !adminProfile?.grade) {
     box.innerHTML = '<strong>Profil belum lengkap</strong><p class="muted">Isi gender dan grade dulu agar bisa ikut sesi.</p>';
     button.disabled = true;
+    button.dataset.mode = '';
     button.innerHTML = '<i class="fa-solid fa-user-pen"></i> Lengkapi Profil';
-    return;
-  }
-
-  if (player?.status === 'waiting') {
-    box.innerHTML = `<strong>Sudah di antrean</strong><p class="muted">${session.title} · ${session.code}</p>`;
-    button.disabled = true;
-    button.innerHTML = '<i class="fa-solid fa-check"></i> Sudah Join';
     return;
   }
 
   if (player?.status === 'playing') {
     box.innerHTML = `<strong>Sedang bermain</strong><p class="muted">${session.title} · ${session.code}</p>`;
     button.disabled = true;
+    button.dataset.mode = '';
     button.innerHTML = '<i class="fa-solid fa-shuttlecock"></i> Sedang Bermain';
+    return;
+  }
+
+  if (player && player.status !== 'registered') {
+    box.innerHTML = `<strong>Sudah di antrean</strong><p class="muted">${session.title} · ${session.code}</p>`;
+    button.disabled = false;
+    button.className = 'btn-danger big';
+    button.dataset.mode = 'leave';
+    button.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Keluar Sesi';
     return;
   }
 
   box.innerHTML = `<strong>Sesi aktif tersedia</strong><p class="muted">${session.title} · Kode ${session.code}</p>`;
   button.disabled = false;
+  button.className = 'btn-primary big';
+  button.dataset.mode = 'join';
   button.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Join Sesi Aktif';
 }
 
@@ -992,8 +1004,8 @@ async function joinActiveSessionAsAdmin() {
     method: 'POST',
   });
 
-  if (result.data) {
-    saveAdminProfileSession(result.data);
+  if (result.player) {
+    saveAdminProfileSession(result.player);
   }
 
   if (result.snapshot) {
@@ -1002,7 +1014,27 @@ async function joinActiveSessionAsAdmin() {
 
   toast(result.message || 'Berhasil join sesi aktif');
   addLog(`${adminProfile?.nama || adminProfile?.username || 'Admin'} join sesi aktif`, 'fa-user-plus');
-  renderAll();
+
+  await loadSnapshot();
+}
+
+async function leaveActiveSessionAsAdmin() {
+  const result = await api('/api/players/me/leave-active', {
+    method: 'POST',
+  });
+
+  if (result.player) {
+    saveAdminProfileSession(result.player);
+  }
+
+  if (result.snapshot) {
+    snapshot = result.snapshot;
+  }
+
+  toast(result.message || 'Berhasil keluar dari sesi aktif');
+  addLog(`${adminProfile?.nama || adminProfile?.username || 'Admin'} keluar dari sesi aktif`, 'fa-right-from-bracket');
+
+  await loadSnapshot();
 }
 
 function renderAll() {

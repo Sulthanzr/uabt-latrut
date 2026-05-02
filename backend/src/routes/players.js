@@ -186,10 +186,68 @@ playerRouter.post('/me/join-active', requireAuth, requireAdmin, asyncHandler(asy
   emitToSession(session._id, 'snapshot:update', snapshot);
 
   res.json({
-    message: 'Berhasil bergabung ke sesi aktif.',
-    data: publicPlayer(player),
-    session,
-    snapshot,
+    data: {
+      message: 'Berhasil bergabung ke sesi aktif.',
+      player: publicPlayer(player),
+      session,
+      snapshot,
+    },
+  });
+}));
+
+playerRouter.post('/me/leave-active', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const playerId = req.user?._id || req.user?.id;
+
+  if (!playerId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const currentPlayer = await findPlayerById(playerId);
+
+  if (!currentPlayer) {
+    return res.status(404).json({
+      message: 'Akun admin tidak ditemukan.',
+    });
+  }
+
+  if (!currentPlayer.session) {
+    return res.status(400).json({
+      message: 'Admin belum tergabung ke sesi mana pun.',
+    });
+  }
+
+  if (currentPlayer.status === 'playing') {
+    return res.status(409).json({
+      message: 'Admin sedang bermain. Selesaikan match dulu sebelum keluar sesi.',
+    });
+  }
+
+  const sessionId = currentPlayer.session;
+
+  await query(
+    `UPDATE players
+     SET session_id = NULL,
+         current_match_id = NULL,
+         status = 'registered'::player_status,
+         waktu_hadir = NULL,
+         updated_at = now()
+     WHERE id = $1`,
+    [playerId]
+  );
+
+  const refreshedPlayer = await findPlayerById(playerId);
+  const safePlayer = publicPlayer(refreshedPlayer);
+  const snapshot = await getSessionSnapshot(sessionId);
+
+  emitToSession(sessionId, 'player:left', safePlayer);
+  emitToSession(sessionId, 'snapshot:update', snapshot);
+
+  res.json({
+    data: {
+      message: 'Berhasil keluar dari sesi aktif.',
+      player: safePlayer,
+      snapshot,
+    },
   });
 }));
 
