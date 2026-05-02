@@ -298,7 +298,17 @@ authRouter.post('/google/complete-profile', asyncHandler(async (req, res) => {
 
   const username = payload.username.trim().toLowerCase();
   const email = normalizeEmail(googleProfile.email);
+  if (payload.password !== payload.confirmPassword) {
+    return res.status(400).json({ message: 'Konfirmasi password tidak cocok.' });
+  }
 
+  if (!/[A-Za-z]/.test(payload.password)) {
+    return res.status(400).json({ message: 'Password harus mengandung huruf.' });
+  }
+
+  if (!/[0-9]/.test(payload.password)) {
+    return res.status(400).json({ message: 'Password harus mengandung angka.' });
+  }
   const existing =
     await findPlayerByGoogleSub(googleProfile.googleSub) ||
     await findPlayerByUsernameOrEmail(email) ||
