@@ -321,7 +321,7 @@ authRouter.post('/google/complete-profile', asyncHandler(async (req, res) => {
   const player = await createPlayer({
     nama: payload.nama.trim(),
     username,
-    passwordHash: null,
+    passwordHash: hashPassword(payload.password),
     gender: payload.gender,
     grade: payload.grade,
     email,
