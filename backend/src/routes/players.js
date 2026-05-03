@@ -225,15 +225,14 @@ playerRouter.post('/me/leave-active', requireAuth, requireAdmin, asyncHandler(as
   const sessionId = currentPlayer.session;
 
   await query(
-    `UPDATE players
-     SET session_id = NULL,
-         current_match_id = NULL,
-         status = 'registered'::player_status,
-         waktu_hadir = NULL,
-         updated_at = now()
-     WHERE id = $1`,
-    [playerId]
-  );
+  `UPDATE players
+   SET session_id = NULL,
+       current_match_id = NULL,
+       status = 'registered'::player_status,
+       updated_at = now()
+   WHERE id = $1`,
+  [playerId]
+);
 
   const refreshedPlayer = await findPlayerById(playerId);
   const safePlayer = publicPlayer(refreshedPlayer);
