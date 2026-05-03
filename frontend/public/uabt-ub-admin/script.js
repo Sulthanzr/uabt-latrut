@@ -207,10 +207,20 @@ function goToPage(name) {
   document.querySelectorAll('.page').forEach((p) => p.classList.remove('active'));
   document.getElementById(`page-${name}`)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach((i) => i.classList.toggle('active', i.dataset.page === name));
+
   if (pageMeta[name]) {
     document.getElementById('pageTitle').textContent = pageMeta[name].title;
     document.getElementById('pageSub').textContent = pageMeta[name].sub;
   }
+
+  if (name === 'profile') {
+    renderAdminProfile();
+
+    loadSnapshot().catch((err) => {
+      toast(`Gagal memuat sesi: ${err.message}`, 'error');
+    });
+  }
+
   if (isMobile()) setMobileSidebar(false);
 }
 
@@ -339,6 +349,26 @@ async function api(path, options = {}) {
   }
 
   return body.data ?? body;
+}
+
+async function refreshAdminProfileFromServer() {
+  try {
+    const latestAdmin = await api('/api/auth/me');
+
+    if (!latestAdmin) return;
+
+    adminProfile = {
+      ...adminProfile,
+      ...latestAdmin,
+    };
+
+    localStorage.setItem('uabt-auth-player', JSON.stringify(adminProfile));
+    localStorage.setItem('uabt-current-player', JSON.stringify(adminProfile));
+
+    renderLoggedInAdmin();
+  } catch (err) {
+    console.warn('Gagal refresh profil admin:', err.message);
+  }
 }
 
 function gradePoint(grade) { return { A: 3, B: 2, C: 1 }[grade] || 0; }
@@ -640,6 +670,8 @@ function renderGenerate() {
     `;
   }
 }
+
+
 
 function manualSelectIds() {
   return [
@@ -1007,6 +1039,15 @@ function renderAdminJoinStatus() {
 
   if (!box || !button) return;
 
+  if (!snapshot) {
+    box.innerHTML = '<strong>Memuat sesi...</strong><p class="muted">Mengambil data sesi aktif dari server.</p>';
+    button.disabled = true;
+    button.dataset.mode = '';
+    button.className = 'btn-primary big';
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memuat Sesi';
+    return;
+  }
+
   const session = snapshot?.session;
   const player = (snapshot?.players || []).find((p) =>
     String(p._id || p.id) === String(adminProfile?._id || adminProfile?.id)
@@ -1271,14 +1312,22 @@ function renderAll() {
   renderManualMatch();
   renderHistory();
   renderLeaderboard();
+  renderAdminProfile();
 }
 
 async function loadSessions() {
   sessions = await api('/api/sessions');
 }
+
 async function loadSnapshot() {
+  await refreshAdminProfileFromServer();
+
   snapshot = await api('/api/sessions/active');
-  if (snapshot.session?._id) socket?.emit('session:join', snapshot.session._id);
+
+  if (snapshot.session?._id) {
+    socket?.emit('session:join', snapshot.session._id);
+  }
+
   await loadSessions();
   renderAll();
 }
